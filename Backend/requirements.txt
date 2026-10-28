@@ -1,0 +1,12 @@
+# Flock Lite image processing - Python 3.12
+# Only what the photo -> "% open" part needs. The API and database
+
+# Install:  pip install -r requirements.txt
+# --- Image processing ---
+ultralytics                # YOLO car detection (also installs PyTorch, ~1-2 GB, and NumPy)
+opencv-python-headless     # open photos and check they're usable (not blurry or dark)
+pillow                     # small image helpers (resize, format conversion)
+shapely                    # parking-spot outlines (later, per-spot detection)
+# --- Testing and code quality ---
+pytest                     # run tests
+ruff                       # linter + formatter
