@@ -1,0 +1,20 @@
+[
+{
+  "model": "parking.parkinglot",
+  "pk": 1,
+  "fields": {
+    "name": "P20",
+    "permit_type": "student",
+    "total_spaces": 200
+  }
+},
+{
+  "model": "parking.availabilityrecord",
+  "pk": 1,
+  "fields": {
+    "parking_lot": 1,
+    "available_spaces": 50,
+    "recorded_at": "2026-11-01T03:52:31.529Z"
+  }
+}
+]
