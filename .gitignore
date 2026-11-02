@@ -1,0 +1,6 @@
+# Specify filepatterns you want git to ignore.
+.DS_Store
+.DS_Store?
+.Spotlight_V100
+.Trashes
+Thumbs.db

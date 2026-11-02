@@ -153,7 +153,7 @@ export default function App() {
     permitFilter === 'All' ? true : lot.permitType === permitFilter
   );
 
-  // Account Login Handler
+  // User Login Handler
   const handleUserLogin = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -663,7 +663,7 @@ export default function App() {
             </div>
 
             <form onSubmit={handleAdminLogin} className="form-stack">
-              <p className="muted">Failed to Login</p>
+              <p className="muted">Admin Login Failed</p>
               <p className="muted">Full account features will be implemented later.</p>
               {isAdminAuthenticated && (
                 <p className="muted" style={{ color: '#4ade80' }}>
@@ -675,7 +675,7 @@ export default function App() {
                 <input
                   value={adminUser}
                   onChange={(e) => setAdminUser(e.target.value)}
-                  placeholder="username"
+                  placeholder="admin"
                   required
                 />
               </label>
