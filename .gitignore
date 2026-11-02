@@ -1,4 +1,7 @@
-   venv/
-   *.pt
-   runs/
-   .vscode/
+.venv/
+venv/
+__pycache__/
+*.pt
+runs/
+.vscode/
+.env
