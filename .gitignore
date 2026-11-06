@@ -4,3 +4,11 @@
 .Spotlight_V100
 .Trashes
 Thumbs.db
+.venv/
+venv/
+pycache/
+.pt
+runs/
+.vscode/
+.env
+zonecheck.png
