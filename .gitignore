@@ -1,8 +1,0 @@
-.venv/
-venv/
-__pycache__/
-*.pt
-runs/
-.vscode/
-.env
-zone_check_*.png
