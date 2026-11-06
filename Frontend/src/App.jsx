@@ -90,6 +90,8 @@ export default function App() {
     }
   }, [currentUser]);
 
+  // Fetch Parking Lots with Simulated Delay and Error Handling
+  // This function is supposed to load parking lot data from the backend
   const loadLots = (delayOverride = simulatedDelayMs, updatedLots = lots) => {
     setLoading(true);
     setTimeoutError(null);
