@@ -21,4 +21,7 @@ from parking.views import parking_lots
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/lots/', parking_lots),
+
+    # New endpoint for the React frontend
+    path('', parking_lots, name='parking_lots'),
 ]
