@@ -1,3 +1,20 @@
+# Docker instructions
+
+## Install Docker and Docker Compose
+sudo apt update
+sudo apt install -y docker.io docker-compose-v2
+sudo usermod -aG docker $USER
+newgrp docker
+
+## CD into Frontend directory 
+cd frontend
+
+## Run Docker Compose and check container status
+docker compose up -d --build
+docker compose ps
+
+
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
