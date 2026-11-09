@@ -11,7 +11,10 @@ cd frontend
 
 ## Run Docker Compose and check container status
 docker compose up -d --build  
-docker compose ps
+docker compose ps  
+
+The container will make the frontend available on port 5173 of your local machine.  
+To connect to it on your local machine enter 127.0.0.1:5173 in a web browser.  
 
 
 
