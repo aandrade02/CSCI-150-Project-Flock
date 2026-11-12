@@ -1,12 +1,12 @@
 import { INITIAL_LOTS, INITIAL_ADMIN_LOGS } from '../mocks/mockData';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TIMEOUT_LIMIT_MS = 15000;
 
 /**
  * Fetches Fresno State parking lot occupancy.
- * Automatically uses local mock data when VITE_USE_MOCK=true, or calls GET /api/v1/lots when false.
+ * Automatically uses local mock data when VITE_USE_MOCK=true, or calls GET /api/lots when false.
  */
 export function fetchParkingLots({ simulatedDelayMs = 250, customLots = null, permitFilter = 'All', onSystemLog }) {
   const startTime = performance.now();
@@ -47,7 +47,7 @@ export function fetchParkingLots({ simulatedDelayMs = 250, customLots = null, pe
 }
 
 /**
- * Fetches hourly or daily forecast for a specific lot: GET /api/v1/lots/:lotId/forecast?interval=hourly|daily
+ * Fetches hourly or daily forecast for a specific lot: GET /api/lots/:lotId/forecast?interval=hourly|daily
  */
 export async function fetchLotForecast(lotId, interval = 'hourly') {
   if (USE_MOCK) {
@@ -65,7 +65,7 @@ export async function fetchLotForecast(lotId, interval = 'hourly') {
 }
 
 /**
- * Admin authentication: POST /api/v1/admin/login
+ * Admin authentication: POST /api/admin/login
  */
 export async function loginAdmin(username, password) {
   if (USE_MOCK) {
@@ -84,7 +84,7 @@ export async function loginAdmin(username, password) {
 }
 
 /**
- * Updates drone acquisition parameters: PUT /api/v1/admin/drone-settings
+ * Updates drone acquisition parameters: PUT /api/admin/drone-settings
  */
 export async function updateDroneSettings(settings, token = null) {
   if (USE_MOCK) {
