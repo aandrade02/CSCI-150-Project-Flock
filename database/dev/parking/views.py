@@ -28,6 +28,7 @@ def parking_lots(request):
             'available_spaces': latest.available_spaces,
             'occupied_spaces': occupied,
             'occupancy_percentage': percentage,
+            'available_percentage': round(100 - percentage, 2),
             'recorded_at': latest.recorded_at.isoformat(),
         })
 
