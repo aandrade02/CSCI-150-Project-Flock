@@ -12,6 +12,9 @@ runs/
 .vscode/
 .env
 zonecheck.png
+backend/zone_check_*.png
+zone_check_*.png
+
 
 # Logs
 logs
@@ -41,3 +44,4 @@ dist-ssr
 __pycache__/
 *.pyc
 *.pt
+

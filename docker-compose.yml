@@ -32,11 +32,13 @@ services:
       - DB_PORT=5432
       - DJANGO_ALLOWED_HOSTS=*
       - PORT=800
+      - BACKEND_DIR=/backend
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - ./database/dev:/app
+      - ./backend:/backend
     restart: unless-stopped
 
   frontend:
