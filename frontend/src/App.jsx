@@ -19,12 +19,12 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [timeoutError, setTimeoutError] = useState(null);
   const [systemLogs, setSystemLogs] = useState([
-    '[SYSTEM] Fresno State Parking Demo initialized.'
+    '[SYSTEM] FlockLite Demo initialized.'
   ]);
 
   // User Preferences & Filtering
   const [permitFilter, setPermitFilter] = useState(() => {
-    const savedUser = localStorage.getItem('dronepark_user');
+    const savedUser = localStorage.getItem('flocklite_user');
     if (savedUser) {
       try {
         return JSON.parse(savedUser).permitType || 'All';
@@ -35,7 +35,7 @@ export default function App() {
     return 'All';
   });
   const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem('dronepark_user');
+    const saved = localStorage.getItem('flocklite_user');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -84,12 +84,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const hasSeenPrompt = localStorage.getItem('dronepark_seen_onboarding');
+    const hasSeenPrompt = localStorage.getItem('flocklite_seen_onboarding');
     if (!hasSeenPrompt && !currentUser) {
-      localStorage.setItem('dronepark_seen_onboarding', 'true');
+      localStorage.setItem('flocklite_seen_onboarding', 'true');
     }
   }, [currentUser]);
 
+  // Fetch Parking Lots with Simulated Delay and Error Handling
+  // This function is supposed to load parking lot data from the backend
   const loadLots = (delayOverride = simulatedDelayMs, updatedLots = lots) => {
     setLoading(true);
     setTimeoutError(null);
@@ -130,18 +132,18 @@ export default function App() {
     appendSystemLog(`[DEMO] Toggled ${lotId} status.`);
   };
 
-  // Status Bar Color Helper (Reversed to show Percentage Full)
+  // Status Bar Color Helper
   const getStatusBarColor = (lot) => {
     if (lot.status === 'UPDATING' || lot.percentFull === null) {
-      return '#64748b';
+      return '#64748b'; //Grey
     }
     const full = lot.percentFull;
-    if (full >= 80) return '#ef4444';
-    if (full >= 50) return '#eab308';
-    return '#22c55e';
+    if (full >= 80) return '#ef4444'; //Red
+    if (full >= 50) return '#eab308'; //Yellow
+    return '#22c55e'; //Green
   };
 
-  // Map Polygon Color Helper: Matches Fresno State Map Permit Colors
+  // Map Polygon Color Helper: Matches Permit Colors
   const getMapPolygonColor = (lot) => {
     if (lot.status === 'UPDATING' || lot.percentFull === null) {
       return '#64748b';
@@ -153,14 +155,14 @@ export default function App() {
     permitFilter === 'All' ? true : lot.permitType === permitFilter
   );
 
-  // Account Login Handler
+  // User Login Handler
   const handleUserLogin = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const username = formData.get('username')?.trim();
     if (username) {
       const userObj = { username };
-      localStorage.setItem('dronepark_user', JSON.stringify(userObj));
+      localStorage.setItem('flocklite_user', JSON.stringify(userObj));
       setCurrentUser(userObj);
       setShowAccountModal(false);
       appendSystemLog(`[ACCOUNT] User login successful for ${username}.`);
@@ -186,19 +188,19 @@ export default function App() {
       {/* Top Navigation Bar */}
       <header className="navbar">
         <div className="brand">
-          <span className="brand-badge">FRESNO STATE</span>
+          <span className="brand-badge">FlockLite</span>
           <div>
-            <h1>Campus Parking Lot Occupancy</h1>
+            <h1>Fresno State Parking Lot Occupancy</h1>
             <span className="subtitle">Real-Time Aerial Telemetry • Status Bars Show % Full</span>
           </div>
         </div>
 
-        {/* Permit Type Filter (Green Student vs Yellow Employee/Staff) */}
+        {/* Permit Type Filter (Green Student vs Yellow Staff) */}
         <div className="permit-filter" role="group" aria-label="Permit Filter">
           <span className="filter-label">Permit:</span>
           {[
-            { id: 'All', label: 'All Lots (8)' },
-            { id: 'Student', label: 'Green (Student)' },
+            { id: 'All', label: 'All Lots' },
+            { id: 'Student', label: 'Green (General)' },
             { id: 'Staff', label: 'Yellow (Staff)' }
           ].map((item) => (
             <button
@@ -371,10 +373,10 @@ export default function App() {
             <div className="map-legend">
               <span><strong>Permit Legend:</strong></span>
               <span className="legend-item">
-                <i className="dot" style={{ background: '#16a34a' }} /> Green Permit — Student
+                <i className="dot" style={{ background: '#16a34a' }} /> Green Student Permit
               </span>
               <span className="legend-item">
-                <i className="dot" style={{ background: '#eab308' }} /> Yellow Permit — Staff
+                <i className="dot" style={{ background: '#eab308' }} /> Yellow Staff Permit
               </span>
               <span className="legend-item">
                 <i className="dot" style={{ background: '#64748b' }} /> Still Updating
@@ -635,7 +637,7 @@ export default function App() {
                     type="button"
                     className="btn btn-outline"
                     onClick={() => {
-                      localStorage.removeItem('dronepark_user');
+                      localStorage.removeItem('flocklite_user');
                       setCurrentUser(null);
                       appendSystemLog('[ACCOUNT] Logged out.');
                       setShowAccountModal(false);
@@ -663,7 +665,7 @@ export default function App() {
             </div>
 
             <form onSubmit={handleAdminLogin} className="form-stack">
-              <p className="muted">Failed to Login</p>
+              <p className="muted">Admin Login Failed</p>
               <p className="muted">Full account features will be implemented later.</p>
               {isAdminAuthenticated && (
                 <p className="muted" style={{ color: '#4ade80' }}>
@@ -675,7 +677,7 @@ export default function App() {
                 <input
                   value={adminUser}
                   onChange={(e) => setAdminUser(e.target.value)}
-                  placeholder="username"
+                  placeholder="admin"
                   required
                 />
               </label>
