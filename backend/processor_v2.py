@@ -12,15 +12,21 @@ VEHICLES = {"small vehicle", "large vehicle"}
 
 # Corners of each row of parking spots, in pixels (measure in Paint).
 # Images not listed here count every vehicle.
+#ZONES = {
+#    "testimg5.png": [
+#        ("zone1", Polygon([(30, 85), (1065, 85), (1065, 330), (30, 330)])),
+#        ("zone2", Polygon([(30, 480), (1065, 480), (1065, 600), (30, 600)])),
+#    ],
+#}
+
 ZONES = {
-    "testimg5.png": [
-        ("zone1", Polygon([(30, 85), (1065, 85), (1065, 330), (30, 330)])),
-        ("zone2", Polygon([(30, 480), (1065, 480), (1065, 600), (30, 600)])),
+    "p20.png": [
+        ("zone1", Polygon([(305, 0), (975, 0), (280, 570), (965, 570)])),
+        ("zone2", Polygon([(175, 600), (1740, 580), (140, 1024), (1781, 1041)])),
     ],
 }
 
-
-def count_available(image_path, total_spaces, min_conf=0.4, save=False):
+def count_available(image_path, total_spaces, min_conf=0.1, save=False):
     r = model(str(image_path), verbose=False, save=save)[0]
     print("YOLO found", len(r.obb), "objects")
     zones = ZONES.get(Path(image_path).name, [])
