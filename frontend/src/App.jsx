@@ -90,6 +90,11 @@ export default function App() {
     }
   }, [currentUser]);
 
+  // Load live parking lot occupancy on mount
+  useEffect(() => {
+    loadLots();
+  }, []);
+
   // Fetch Parking Lots with Simulated Delay and Error Handling
   // This function is supposed to load parking lot data from the backend
   const loadLots = (delayOverride = simulatedDelayMs, updatedLots = lots) => {
@@ -134,7 +139,7 @@ export default function App() {
 
   // Status Bar Color Helper
   const getStatusBarColor = (lot) => {
-    if (lot.status === 'UPDATING' || lot.percentFull === null) {
+    if (!lot || lot.status === 'UPDATING' || lot.percentFull === null || lot.percentFull === undefined) {
       return '#64748b'; //Grey
     }
     const full = lot.percentFull;
@@ -145,14 +150,14 @@ export default function App() {
 
   // Map Polygon Color Helper: Matches Permit Colors
   const getMapPolygonColor = (lot) => {
-    if (lot.status === 'UPDATING' || lot.percentFull === null) {
+    if (!lot || lot.status === 'UPDATING' || lot.percentFull === null || lot.percentFull === undefined) {
       return '#64748b';
     }
-    return lot.permitType === 'Student' ? '#16a34a' : '#eab308';
+    return (lot.permitType || '').toLowerCase() === 'staff' ? '#eab308' : '#16a34a';
   };
 
   const filteredLots = lots.filter((lot) =>
-    permitFilter === 'All' ? true : lot.permitType === permitFilter
+    permitFilter === 'All' ? true : (lot.permitType || '').toLowerCase() === permitFilter.toLowerCase()
   );
 
   // User Login Handler
@@ -300,8 +305,8 @@ export default function App() {
                   <div key={lot.id} className="lot-card">
                     <div className="lot-card-top">
                       <div>
-                        <span className={`permit-tag ${lot.permitType.toLowerCase()}`}>
-                          {lot.permitType === 'Student' ? 'Green Permit • Student' : 'Yellow Permit • Staff'}
+                        <span className={`permit-tag ${(lot.permitType || 'Student').toLowerCase()}`}>
+                          {(lot.permitType || '').toLowerCase() === 'staff' ? 'Yellow Permit • Staff' : 'Green Permit • Student'}
                         </span>
                         <h3>{lot.name}</h3>
                       </div>
@@ -490,6 +495,7 @@ export default function App() {
 
                 {/* Interactive Fresno State Demo Parking Lot Polygons (P1, P2, P5, P6, P15, P20, P30, P31) */}
                 {filteredLots.map((lot) => {
+                  if (!lot.coordinates) return null;
                   const isUpdating = lot.status === 'UPDATING' || lot.percentFull === null;
                   const polyColor = getMapPolygonColor(lot);
                   const { x, y, width, height } = lot.coordinates;

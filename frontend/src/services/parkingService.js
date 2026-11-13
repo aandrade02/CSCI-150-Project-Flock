@@ -5,6 +5,56 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TIMEOUT_LIMIT_MS = 15000;
 
 /**
+ * Normalizes backend database lot records into the UI schema required by the React components.
+ * Merges telemetry from the database (e.g., P20 occupancy) into the base campus lot definitions.
+ */
+export function normalizeLotData(backendData, baseLots = INITIAL_LOTS) {
+  const backendLots = Array.isArray(backendData) ? backendData : (backendData?.lots || []);
+  if (!backendLots.length) return baseLots;
+
+  const backendMap = new Map();
+  backendLots.forEach((bLot) => {
+    const rawName = String(bLot.lot_name || bLot.name || bLot.code || '').toUpperCase().trim();
+    if (rawName) {
+      backendMap.set(rawName, bLot);
+    }
+  });
+
+  return baseLots.map((baseLot) => {
+    const baseCode = String(baseLot.code || '').toUpperCase();
+    const baseName = String(baseLot.name || '').toUpperCase();
+    const bLot = backendMap.get(baseCode) || backendMap.get(baseName);
+    if (!bLot) return baseLot;
+
+    const percentFull = typeof bLot.occupancy_percentage === 'number'
+      ? Math.round(bLot.occupancy_percentage)
+      : (typeof bLot.percentFull === 'number' ? bLot.percentFull : baseLot.percentFull);
+
+    let lastUpdated = baseLot.lastUpdated;
+    if (bLot.recorded_at) {
+      try {
+        const d = new Date(bLot.recorded_at);
+        if (!isNaN(d.getTime())) {
+          lastUpdated = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        }
+      } catch {
+        // keep fallback
+      }
+    }
+
+    return {
+      ...baseLot,
+      percentFull,
+      lastUpdated,
+      totalSpaces: bLot.total_spaces ?? baseLot.totalSpaces,
+      availableSpaces: bLot.available_spaces ?? baseLot.availableSpaces,
+      occupiedSpaces: bLot.occupied_spaces ?? baseLot.occupiedSpaces,
+      status: 'OK'
+    };
+  });
+}
+
+/**
  * Fetches Fresno State parking lot occupancy.
  * Automatically uses local mock data when VITE_USE_MOCK=true, or calls GET /api/lots when false.
  */
@@ -34,7 +84,7 @@ export function fetchParkingLots({ simulatedDelayMs = 250, customLots = null, pe
         } else if (onSystemLog) {
           onSystemLog(`[OK] API occupancy rendered in ${elapsed}ms.`);
         }
-        return data.lots || data;
+        return normalizeLotData(data, customLots || INITIAL_LOTS);
       });
 
   const timeoutPromise = new Promise((_, reject) => {
