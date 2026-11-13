@@ -60,6 +60,37 @@ docker compose exec flocklite-backend sh
 
 ---
 
+## Running the Image Processor
+
+The processor counts cars in an aerial image and saves the result to the database.
+The API and the webpage show the new numbers after a refresh.
+
+With the containers running (`docker compose up -d`), run from the repository root:
+
+```bash
+docker compose exec backend python manage.py process_image <image> --lot <lot name> --total <spaces>
+```
+
+- `<image>`: a file in `backend/images/` (e.g. `testimg5.png`)
+- `--lot`: the lot to update. Use a campus lot code like `P20` so it shows on the map.
+- `--total`: the number of parking spaces in that image. This updates the lot's total spaces.
+
+Examples:
+```bash
+docker compose exec backend python manage.py process_image testimg5.png --lot P20 --total 54
+docker compose exec backend python manage.py process_image testimg1.png --lot P20 --total 107
+```
+
+Then refresh http://127.0.0.1:800/api/lots and http://localhost:5173 to see the update.
+
+Notes:
+- The first run downloads the YOLO model and takes a little longer.
+- Each run saves `backend/zone_check_<image>.png`, showing which cars were counted
+  (green = counted, red = outside the zones). Zones are set per image in `ZONES` in `backend/processor_v2.py`.
+- Restarting the containers reloads the sample data and resets P20 to 200 spaces. Run the command again after a restart.
+
+---
+
 ## Viewing Logs & Stopping Containers
 
 * **View live logs for all services**:
