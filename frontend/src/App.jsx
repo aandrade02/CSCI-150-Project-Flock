@@ -1,18 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Map,
-  List,
-  Shield,
-  User,
-  AlertTriangle,
-  TrendingUp,
-  RefreshCw,
-  Sliders,
-  Clock
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { RefreshCw } from 'lucide-react';
 import { INITIAL_LOTS } from './mocks/mockData';
 import { fetchParkingLots } from './services/parkingService';
-import { getLotLabelLayout } from './services/lotLabelLayout';
+import { loadSavedUser, saveUser, clearSavedUser } from './services/userStorage';
+import Navbar from './components/Navbar';
+import LotList from './components/LotList';
+import CampusMap from './components/CampusMap';
+import ForecastModal from './components/ForecastModal';
+import AccountModal from './components/AccountModal';
+import AdminModal from './components/AdminModal';
+import DemoToolbar from './components/DemoToolbar';
 
 export default function App() {
   // Core Data States
@@ -24,40 +21,17 @@ export default function App() {
   ]);
 
   // User Preferences & Filtering
-  const [permitFilter, setPermitFilter] = useState(() => {
-    const savedUser = localStorage.getItem('flocklite_user');
-    if (savedUser) {
-      try {
-        return JSON.parse(savedUser).permitType || 'All';
-      } catch {
-        return 'All';
-      }
-    }
-    return 'All';
-  });
-  const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem('flocklite_user');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  });
+  const [permitFilter, setPermitFilter] = useState(() => loadSavedUser()?.permitType || 'All');
+  const [currentUser, setCurrentUser] = useState(loadSavedUser);
 
   // View States
   const [mobileTab, setMobileTab] = useState('split'); // 'split' | 'list' | 'map'
   const [selectedForecastLot, setSelectedForecastLot] = useState(null);
-  const [forecastInterval, setForecastInterval] = useState('hourly');
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
 
   // Admin State
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-  const [adminUser, setAdminUser] = useState('');
-  const [adminPass, setAdminPass] = useState('');
 
   // Demo Control Toolbar State (Hidden by default; toggled via SHIFT + D)
   const [simulatedDelayMs, setSimulatedDelayMs] = useState(200);
@@ -123,6 +97,11 @@ export default function App() {
     loadLots(simulatedDelayMs, lots);
   };
 
+  const handleDelayChange = (delayMs) => {
+    setSimulatedDelayMs(delayMs);
+    loadLots(delayMs, lots);
+  };
+
   // Toggle a lot between 'OK' and 'UPDATING'
   const toggleLotUpdatingState = (lotId) => {
     const nextLots = lots.map((lot) => {
@@ -138,25 +117,6 @@ export default function App() {
     appendSystemLog(`[DEMO] Toggled ${lotId} status.`);
   };
 
-  // Status Bar Color Helper
-  const getStatusBarColor = (lot) => {
-    if (!lot || lot.status === 'UPDATING' || lot.percentFull === null || lot.percentFull === undefined) {
-      return '#64748b'; //Grey
-    }
-    const full = lot.percentFull;
-    if (full >= 80) return '#ef4444'; //Red
-    if (full >= 50) return '#eab308'; //Yellow
-    return '#22c55e'; //Green
-  };
-
-  // Map Polygon Color Helper: Matches Permit Colors
-  const getMapPolygonColor = (lot) => {
-    if (!lot || lot.status === 'UPDATING' || lot.percentFull === null || lot.percentFull === undefined) {
-      return '#64748b';
-    }
-    return (lot.permitType || '').toLowerCase() === 'staff' ? '#eab308' : '#16a34a';
-  };
-
   const filteredLots = lots.filter((lot) =>
     permitFilter === 'All' ? true : (lot.permitType || '').toLowerCase() === permitFilter.toLowerCase()
   );
@@ -168,7 +128,7 @@ export default function App() {
     const username = formData.get('username')?.trim();
     if (username) {
       const userObj = { username };
-      localStorage.setItem('flocklite_user', JSON.stringify(userObj));
+      saveUser(userObj);
       setCurrentUser(userObj);
       setShowAccountModal(false);
       appendSystemLog(`[ACCOUNT] User login successful for ${username}.`);
@@ -176,85 +136,24 @@ export default function App() {
     }
   };
 
-  // Admin Login Handler
-  const handleAdminLogin = (e) => {
-    e.preventDefault();
-    if (adminUser.trim() === 'admin' && adminPass === 'admin') {
-      setIsAdminAuthenticated(true);
-      appendSystemLog('[ADMIN] Admin login successful.');
-      alert('Admin login successful.');
-      setShowAdminModal(false);
-    } else {
-      alert('Demo credentials: username "admin", password "admin"');
-    }
+  const handleUserLogout = () => {
+    clearSavedUser();
+    setCurrentUser(null);
+    appendSystemLog('[ACCOUNT] Logged out.');
+    setShowAccountModal(false);
   };
 
   return (
     <div className="app-container">
-      {/* Top Navigation Bar */}
-      <header className="navbar">
-        <div className="brand">
-          <span className="brand-badge">FlockLite</span>
-          <div>
-            <h1>Fresno State Parking Lot Occupancy</h1>
-            <span className="subtitle">Real-Time Aerial Telemetry • Status Bars Show % Full</span>
-          </div>
-        </div>
-
-        {/* Permit Type Filter (Green Student vs Yellow Staff) */}
-        <div className="permit-filter" role="group" aria-label="Permit Filter">
-          <span className="filter-label">Permit:</span>
-          {[
-            { id: 'All', label: 'All Lots' },
-            { id: 'Student', label: 'Green (General)' },
-            { id: 'Staff', label: 'Yellow (Staff)' }
-          ].map((item) => (
-            <button
-              key={item.id}
-              className={`chip ${permitFilter === item.id ? 'active' : ''}`}
-              onClick={() => handlePermitChange(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        {/* View Mode & Modals */}
-        <div className="nav-actions">
-          <div className="view-switcher">
-            <button
-              className={`chip ${mobileTab === 'split' ? 'active' : ''}`}
-              onClick={() => setMobileTab('split')}
-              title="Split Screen View"
-            >
-              Split
-            </button>
-            <button
-              className={`chip ${mobileTab === 'list' ? 'active' : ''}`}
-              onClick={() => setMobileTab('list')}
-              title="List View"
-            >
-              <List size={15} /> List
-            </button>
-            <button
-              className={`chip ${mobileTab === 'map' ? 'active' : ''}`}
-              onClick={() => setMobileTab('map')}
-              title="Map View"
-            >
-              <Map size={15} /> Map
-            </button>
-          </div>
-
-          <button className="btn btn-outline" onClick={() => setShowAccountModal(true)}>
-            <User size={16} />
-            {currentUser ? currentUser.username : 'Account'}
-          </button>
-
-          <button className="btn btn-outline" onClick={() => setShowAdminModal(true)}>
-            <Shield size={16} /> Admin
-          </button>
-        </div>
-      </header>
+      <Navbar
+        permitFilter={permitFilter}
+        onPermitChange={handlePermitChange}
+        mobileTab={mobileTab}
+        onTabChange={setMobileTab}
+        currentUser={currentUser}
+        onOpenAccount={() => setShowAccountModal(true)}
+        onOpenAdmin={() => setShowAdminModal(true)}
+      />
 
       {/* 15-Second Timeout Banner */}
       {timeoutError && (
@@ -262,13 +161,7 @@ export default function App() {
           <div>
             <strong>Timeout Error:</strong> {timeoutError}
           </div>
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              setSimulatedDelayMs(200);
-              loadLots(200, lots);
-            }}
-          >
+          <button className="btn btn-primary" onClick={() => handleDelayChange(200)}>
             <RefreshCw size={15} /> Reset Latency &amp; Refresh Now
           </button>
         </div>
@@ -276,615 +169,55 @@ export default function App() {
 
       {/* Main Content Area: Split-Screen on Desktop or Toggled View */}
       <main className={`dashboard-grid mode-${mobileTab}`}>
-        {/* Left Column: Parking Lot List & Reversed Status Bars (% Full) */}
         {(mobileTab === 'split' || mobileTab === 'list') && (
-          <section className="panel list-panel">
-            <div className="panel-header">
-              <div>
-                <h2>Lot Occupancy Status</h2>
-                <p className="muted">
-                  Showing {filteredLots.length} of {lots.length} lot(s) • Bars fill from 0% (Empty) to 100% (Full)
-                </p>
-              </div>
-              <button
-                className="btn btn-sm"
-                onClick={() => loadLots(simulatedDelayMs, lots)}
-                disabled={loading}
-              >
-                <RefreshCw size={14} className={loading ? 'spin' : ''} />
-                {loading ? 'Loading...' : 'Refresh'}
-              </button>
-            </div>
-
-            <div className="lot-cards">
-              {filteredLots.map((lot) => {
-                const isUpdating = lot.status === 'UPDATING' || lot.percentFull === null;
-                const barColor = getStatusBarColor(lot);
-                const openPct = isUpdating ? null : 100 - lot.percentFull;
-
-                return (
-                  <div key={lot.id} className="lot-card">
-                    <div className="lot-card-top">
-                      <div>
-                        <span className={`permit-tag ${(lot.permitType || 'Student').toLowerCase()}`}>
-                          {(lot.permitType || '').toLowerCase() === 'staff' ? 'Yellow Permit • Staff' : 'Green Permit • Student'}
-                        </span>
-                        <h3>{lot.name}</h3>
-                      </div>
-
-                      <div className="lot-pct-box">
-                        {isUpdating ? (
-                          <span className="updating-badge">Still Updating...</span>
-                        ) : (
-                          <div className="pct-stack">
-                            <span className="pct-number" style={{ color: barColor }}>
-                              {lot.percentFull}% Full
-                            </span>
-                            <span className="pct-sub">({openPct}% Open)</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Reversed Status Progress Bar: Width = % Full */}
-                    <div className="progress-track" title={isUpdating ? 'Updating' : `${lot.percentFull}% Full`}>
-                      <div
-                        className="progress-fill"
-                        style={{
-                          width: isUpdating ? '100%' : `${lot.percentFull}%`,
-                          backgroundColor: barColor
-                        }}
-                      />
-                    </div>
-
-                    <div className="lot-card-footer">
-                      <span className="timestamp">
-                        <Clock size={13} /> {lot.lastUpdated}
-                        {!isUpdating && (
-                          <span className="delta">
-                            ({lot.fiveMinDelta >= 0 ? `+${lot.fiveMinDelta}%` : `${lot.fiveMinDelta}%`} full / 5m)
-                          </span>
-                        )}
-                      </span>
-
-                      <div className="card-actions">
-                        <button
-                          className="btn-link"
-                          onClick={() => setSelectedForecastLot(lot)}
-                        >
-                          <TrendingUp size={14} /> Forecast
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+          <LotList
+            lots={filteredLots}
+            totalCount={lots.length}
+            loading={loading}
+            onRefresh={() => loadLots(simulatedDelayMs, lots)}
+            onSelectLot={setSelectedForecastLot}
+          />
         )}
 
-        {/* Right Column: Customized Fresno State Static Parking Map */}
         {(mobileTab === 'split' || mobileTab === 'map') && (
-          <section className="panel map-panel">
-            <div className="panel-header">
-              <div>
-                <h2>Fresno State Campus Parking Map</h2>
-                <p className="muted">
-                  Click any highlighted lot on the map to view hourly and daily occupancy forecasts
-                </p>
-              </div>
-            </div>
-
-            {/* Map Legend */}
-            <div className="map-legend">
-              <span><strong>Permit Legend:</strong></span>
-              <span className="legend-item">
-                <i className="dot" style={{ background: '#16a34a' }} /> Green Student Permit
-              </span>
-              <span className="legend-item">
-                <i className="dot" style={{ background: '#eab308' }} /> Yellow Staff Permit
-              </span>
-              <span className="legend-item">
-                <i className="dot" style={{ background: '#64748b' }} /> Still Updating
-              </span>
-            </div>
-
-            {/* Customized Fresno State Campus SVG Map */}
-            <div className="static-map-canvas">
-              <svg viewBox="0 0 1000 612" preserveAspectRatio="xMidYMid meet" className="campus-svg">
-                <rect x="0" y="0" width="1000" height="612" fill="#0b1120" />
-
-                {/* Major Campus Landmarks / Building Blocks */}
-                <g fill="#1e293b" stroke="#334155">
-                  <polygon points="436.2,49.1 436.2,83.9 428.9,83.9 428.9,96.5 448.5,96.5 448.5,49.1" />
-                  <polygon points="390.6,63 390.6,57.4 384.7,57.4 384.7,54.3 378.9,54.3 378.9,52.5 374.2,52.5 374.2,63 377.8,63 377.8,84.6 387.6,84.6 387.6,79.3 384.7,79.3 384.7,63" />
-                  <rect x="874.6" y="65.8" width="26.9" height="33.6" />
-                  <polygon points="230.6,168.5 230.6,162 266.9,162 266.9,148.7 230.6,148.7 230.6,145.3 237,145.3 237,141.5 262.5,141.5 262.5,143.6 278.1,143.6 278.1,134.6 274.5,134.6 274.5,125.3 268.1,125.3 268.1,117.3 253.2,117.3 253.2,125.3 197.3,125.3 197.3,139.6 215,139.6 215,135.1 218.8,135.1 218.8,181.9 277.5,181.9 277.5,168.5" />
-                  <polygon points="730.5,121.8 730.9,140 753.2,140.2 753.2,139.4 760.1,139.9 760.1,139.2 762.6,139.2 762.6,139.9 763.4,139.9 763.4,139.2 766,139.2 766,139.8 769.3,139.2 769.3,139.9 770.3,139.9 770.3,139.2 773.8,139.8 773.8,139.1 776.2,139.1 776.2,139.8 777.1,139.8 777.1,139.1 794.5,139.6 794.4,121.4" />
-                  <polygon points="914.9,133.8 922.3,133.8 922.3,140.8 964,141 964,127.7 950.4,127.4 949.1,124.5 911.8,122.7" />
-                  <polygon points="72.3,155.9 70.5,127.7 69,126.7 55.5,124.1 30.9,151.2 35.5,164.4 65.7,162.6 71.8,167.2 77.3,161.2" />
-                  <polygon points="714.6,124.6 675,124.6 674.7,150 701.2,150 701.2,144.5 714.6,144.5" />
-                  <polygon points="365.3,138.2 365.3,132.2 349.3,132.2 349.3,138.2 324.6,138.2 324.6,131 317,131 317,148.3 377,148.4 377,138.2" />
-                  <rect x="390.2" y="133.2" width="62.6" height="11" />
-                  <rect x="380.2" y="146.3" width="12" height="42.7" />
-                  <polygon points="116,155.7 118,162 116.9,162.2 117.7,164.2 128.3,161.4 149.2,161.2 146.8,153.1 140.4,154.5 138.7,148.8 133.8,150.1 134.2,151.1" />
-                  <polygon points="607.6,154 604.8,161.8 609.4,163.3 610.1,161.4 611.7,162 610.2,166.5 636.8,174.2 640.4,164.2" />
-                  <polygon points="676.2,159.3 673,159.3 673,182.4 677.9,182.2 678.2,197.6 698.1,197.6 697.7,181 703.1,181 703.1,155.2 675.7,155.2" />
-                  <polygon points="604.5,164.8 602.4,169 600,168.2 594.1,185.9 597.6,187.2 594.9,193.1 597.6,194.4 594.9,197.3 595.5,200.7 599.3,201.9 601.9,198.9 601.3,195.6 604.4,196.5 606,190.3 605.3,189.1 600.7,187.5 607.8,166" />
-                  <polygon points="628.9,190 631.5,194.9 652.9,179.9 648.9,176.1" />
-                  <rect x="395.1" y="186" width="65.4" height="12" />
-                  <polygon points="233.2,201.5 233.2,191.9 217.4,191.9 217.4,199.6 220.9,199.6 220.9,220.5 282.3,220.5 282.3,201.5" />
-                  <path fillRule="evenodd" d="M 28.9 230.1 A 28 28 0 0 1 84.2 220.9 L 94.1 280.1 A 28 28 0 0 1 38.8 289.3 Z M 35.4 229.1 A 21.5 21.5 0 0 1 77.8 222 L 87.7 281.1 A 21.5 21.5 0 0 1 45.3 288.2 Z" />
-                  <rect x="322.7" y="199.3" width="64.2" height="18.4" />
-                  <polygon points="105.1,201.7 99.9,200.3 98.8,204 90.2,201.7 87,213.4 95.2,215.7 92,227.3 91.4,227.1 89.2,232.7 98,235 99.2,229.1 98.4,229 101.6,217.4 109.6,219.5 112.8,208.1 103.3,205.3 103.7,204 104.5,204.1" />
-                  <polygon points="810,259.6 810.1,207.6 808.9,206.5 751.1,206.5 749.7,207.7 749.7,259.4 751.1,260.6 808.8,260.6" />
-                  <polygon points="472.9,281.8 472.9,234.4 460.6,234.4 460.6,240 427,240 427,256.8 454.5,256.8 454.5,265.6 427,265.6 427,281.8" />
-                  <polygon points="136.4,236.8 136.4,261.7 130.6,261.7 130.6,240.8 115.6,240.8 115.6,301.3 137.1,301.3 137.1,296.8 153.5,296.8 153.5,285.8 179.4,285.8 179.4,236.8" />
-                  <polygon points="250,239.9 250,255.2 276.2,255.2 276.2,277.9 291,277.9 291,239.9" />
-                  <polygon points="241.8,240.3 200.9,240.3 200.9,270.3 215.6,270.3 215.6,255.6 241.8,255.6" />
-                  <polygon points="405.7,262 405.9,249.9 369.3,249.6 369.3,241.9 359.8,241.9 360,249.9 313.6,249.9 314,262.1 345.1,262.1 345.1,268.6 314.9,268.5 314.9,280.2 355.9,280.2 355.9,288 348,288.2 348.1,299.7 403.3,300 403.1,288.2 368.6,288 368.8,281.1 400.8,281 400.7,269 366.6,268.9 366.6,262" />
-                  <rect x="537.1" y="253.2" width="77.9" height="27" />
-                  <polygon points="524.5,296.8 515.6,254.4 496.5,254.4 486.8,296.8" />
-                  <polygon points="767.7,331.4 775.1,331.4 787.6,301.1 787.6,294.1 775,264 767.8,263.8 755.2,294.3 755.2,301.6" />
-                  <polygon points="221.9,290 223.8,281.6 210.9,278.9 209,287.2 201.3,285.5 197.9,300.4 240.8,309.7 244.3,294.8" />
-                  <polygon points="285.1,303.6 289.4,285 276.5,282.2 272.1,300.8 251.5,296.3 248,311.2 290.8,320.5 294.3,305.6" />
-                  <polygon points="621.8,318.9 621.8,309.3 632.7,309.3 632.7,298.8 621.8,298.8 621.8,289.8 606.1,289.8 606.1,311.6 602.3,311.6 602.3,308.6 567.3,308.6 567.3,338.2 602.3,338.2 602.3,331.9 620.9,331.9 620.9,338.2 636.8,338.2 636.8,318.9" />
-                  <polygon points="473.1,326.5 473.1,306.9 441.1,306.9 441.1,301.5 425.4,301.5 425.4,319 456.2,319 456.2,337.6 475.8,337.6 475.8,326.5" />
-                  <polygon points="360.4,304.8 360.4,310.5 349.5,310.5 349.5,303.6 314.6,303.6 314.6,334.3 349.5,334.3 349.5,323.9 360.4,323.9 360.4,328.2 393.6,328.2 393.6,304.8" />
-                  <polygon points="171.7,328.2 171.7,311.7 156.8,311.7 156.8,321.7 128.1,321.7 128.1,363 140.6,363 140.6,359.8 145.6,359.8 145.6,356.4 150.3,356.4 150.3,352.3 171.8,352.3 171.8,361.2 180.5,361.2 180.5,328.2" />
-                  <rect x="27.3" y="326.1" width="46.9" height="86.3" />
-                  <polygon points="296,381.1 298.8,367.6 285.9,350.9 235.4,341.2 229.9,368.4 268.9,375.9 267.6,382.8 255.3,380.6 248.4,414.9 282.7,421.5 289.6,387.1 284.3,386.2 285.6,379.1" />
-                  <polygon points="602.8,368 602.8,352.8 583,352.8 583,368 565.7,368 565.7,393.2 620.1,393.2 620.1,368" />
-                  <polygon points="383.4,368.1 383.4,392.7 426.6,392.7 426.6,401.9 453.6,401.9 453.6,390.3 464.1,390.3 464.1,368.9 460.5,368.9 460.5,353.1 446.4,353.1 446.4,364.5 424.6,364.5 424.6,368.1" />
-                  <polygon points="351.9,390.2 351.9,357.8 337.8,357.8 337.8,362.2 312.8,362.2 312.8,390.2" />
-                  <polygon points="261.3,417.7 270.3,374.1 236.8,367 227.8,410.8" />
-                  <polygon points="211.8,395.2 197.3,390.6 199.1,385.2 185.2,380.9 183.4,386.2 168.9,381.5 157.7,414.9 172.2,419.5 170.3,424.9 184.3,429.3 186,424.1 200.5,428.6" />
-                  <polygon points="463.2,396.9 463.6,406.8 437.5,406.8 437.5,428.1 447.7,428.1 447.7,433.1 436.2,433.1 436.2,443.4 384,443.4 384,457 396.9,457 396.9,467.6 390.4,467.6 390.4,476.3 419.1,476.3 419.1,466.8 412.9,466.8 412.9,457.4 435.4,457.4 435.4,463.6 447.3,463.6 447.3,459.6 479,459.6 479,435.6 472.5,435.6 472.5,428.1 479,428.1 479,406.2 476.5,406.2 476.5,396.9" />
-                  <polygon points="359.2,398.5 359.2,438.4 386.4,438.4 386.4,433.5 430.5,433.5 430.5,414.9 408.5,414.9 408.5,408.1 386.4,408.1 386.4,398.5" />
-                  <polygon points="556.5,402.8 522.2,402.8 522.6,421.1 527.9,421.5 527.9,432.2 522.6,432.2 522.6,452.3 556.5,452.3" />
-                  <polygon points="249.9,438.7 209.3,426.7 196,470.1 207.8,473.5 217.4,442.2 234.3,447.1 229,464.8 240.8,468.2" />
-                  <polygon points="151.2,448 152.7,443.6 144,441.1 142,447.3 117.4,440 113.2,453.3 136.7,460.4 134.2,468.4 146.9,472.2 150,462.2 175.5,469.8 179.8,456.5" />
-                  <polygon points="253.3,478.9 218.2,467.8 215,477.8 239.6,485 234.2,502.7 246,506" />
-                  <polygon points="543.1,471.3 534.7,490.3 585.1,496 585.1,471.3" />
-                  <polygon points="153.2,482.4 154.7,478.1 146,475.5 143.9,481.9 118.6,474.5 114.5,487.8 138.6,494.9 136,502.8 148.8,506.6 152,496.7 177.5,504.3 181.8,491" />
-                  <polygon points="232.3,486.3 191,474.6 182.7,501.5 192.3,504.3 194,498.8 201.3,500.9 203.5,493.9 209.2,495.5 206.4,504.8 225,510.1" />
-                  <polygon points="770.6,534.7 770.7,551.9 777.7,551.9 777.7,564.8 787,564.8 787,569.3 829.3,569.3 829.3,480.6 781.4,480.6 781.4,491.8 770.9,491.8 770.9,510.6 766.5,510.6 766.5,534.7" />
-                  <polygon points="964.4,576.2 964.4,480.6 834.7,480.6 834.7,569.8 929.9,569.8 929.9,576.2" />
-                  <polygon points="617.6,510.8 617.6,509.6 620.2,509.6 620.2,510.9 624.7,510.8 624.7,505.5 627.3,505.5 627.3,506.8 644,506.8 644,505.5 652.5,505.5 652.5,500.4 648.4,500.4 648.4,497.6 649.7,497.6 649.7,484.8 638.3,484.8 638.3,487.2 636.7,487.2 636.7,494.8 632.6,494.8 632.6,497.5 616,497.5 616,495.1 611.8,495.1 611.8,487.5 610,487.5 610,485 601.7,485 601.9,488.2 600.7,488.2 600.7,492.3 601.9,492.3 601.9,498 606.9,498 606.9,500.4 606.1,500.4 606.1,507.7 613,507.7 613,510.8" />
-                  <polygon points="490.8,502.9 459.3,502.9 453.3,514.6 390.7,514.6 390.7,550.4 465.8,550.4" />
-                  <polygon points="379,539.5 379,527.5 343.2,527.5 343.2,524.6 349.9,524.6 349.9,508.9 326.2,508.9 326.2,539.5 334.8,539.5 334.8,542.8 326.1,542.8 326.1,560.8 334.8,560.8 334.8,570.3 356.6,570.3 356.6,559.4 343.2,559.4 343.2,554.8 379,554.8 379,542.8 343.2,542.8 343.2,539.5" />
-                  <rect x="268.8" y="511.3" width="33" height="30.6" />
-                  <polygon points="252.9,522.7 225,514.4 221.5,525.7 238.4,530.6 233.4,547.1 244.5,550.4" />
-                  <polygon points="155.6,538 158.1,530.1 145.2,526.2 142.2,536.2 116.6,528.6 112.4,541.9 139.8,550 138.6,554 147.1,556.5 149.1,550.7 174.7,558.4 179,545.1" />
-                  <polygon points="224.6,534.2 219.1,551.9 207.2,547.7 212.8,530.1 201.9,526.3 194,551.9 218.4,560.1 230.1,554.8 235.4,538" />
-                </g>
-
-                {/* Save Mart Center Parking (not tracked; drawn like an updating lot) */}
-                <rect
-                  x="743"
-                  y="354"
-                  width="228"
-                  height="85"
-                  fill="#64748b"
-                  fillOpacity="0.42"
-                  stroke="#64748b"
-                  strokeWidth="2.4"
-                  strokeLinejoin="round"
-                />
-
-                {/* Building Text Labels */}
-                <g fill="#94a3b8" fontSize="10" textAnchor="middle">
-                  <text x="381.6" y="43.4">Viticulture</text>
-                  <text x="438.8" y="43.4">Enology</text>
-                  <text x="63.8" y="142.9"><tspan x="63.8" dy="0">Margie Wright</tspan><tspan x="63.8" dy="11">Diamond</tspan></text>
-                  <text x="229" y="133.3"><tspan x="229" dy="0">Industrial</tspan><tspan x="229" dy="11">Tech</tspan></text>
-                  <text x="346.7" y="143.8">Police</text>
-                  <text x="421.1" y="142.5">Ag Operations</text>
-                  <text x="250" y="208.9"><tspan x="250" dy="0">Engineering</tspan><tspan x="250" dy="11">West</tspan></text>
-                  <text x="355.1" y="206.8"><tspan x="355.1" dy="0">Engineering</tspan><tspan x="355.1" dy="11">East</tspan></text>
-                  <text x="426.9" y="195.5">Ag Mechanics</text>
-                  <text x="359" y="274.8">McLane Hall</text>
-                  <text x="450.8" y="269.5">Ag Sciences</text>
-                  <text x="505.8" y="279.7"><tspan x="505.8" dy="0">Satellite</tspan><tspan x="505.8" dy="11">SU</tspan></text>
-                  <text x="550.6" y="270.2">Science</text>
-                  <text x="611.7" y="187">Science II</text>
-                  <text x="687.9" y="173.4">DOJ Lab</text>
-                  <text x="764.6" y="128.3"><tspan x="764.6" dy="0">Jordan Ag</tspan><tspan x="764.6" dy="11">Research</tspan></text>
-                  <text x="659.6" y="88.6">O’Neill Park</text>
-                  <text x="779.9" y="237.1">Horse Center</text>
-                  <text x="771.4" y="301.2">Rodeo</text>
-                  <text x="888" y="84"><tspan x="888" dy="0">Graduate</tspan><tspan x="888" dy="11">Lab</tspan></text>
-                  <text x="931" y="135.8">ICWT</text>
-                  <text x="61.8" y="253.3"><tspan x="61.8" dy="0">Warmerdam</tspan><tspan x="61.8" dy="11">Field</tspan></text>
-                  <text x="157.8" y="267.8">North Gym</text>
-                  <text x="99.7" y="220.3">Aquatics</text>
-                  <text x="221.4" y="253.3"><tspan x="221.4" dy="0">Social</tspan><tspan x="221.4" dy="11">Science</tspan></text>
-                  <text x="282.2" y="252.3">McKee Fisk</text>
-                  <text x="144.2" y="341.1">South Gym</text>
-                  <text x="50.8" y="347.5"><tspan x="50.8" dy="0">Tennis</tspan><tspan x="50.8" dy="11">Center</tspan></text>
-                  <text x="184.8" y="408.6">Dining Hall</text>
-                  <text x="263.3" y="375.8">Library</text>
-                  <text x="332.3" y="374.2"><tspan x="332.3" dy="0">University</tspan><tspan x="332.3" dy="11">Center</tspan></text>
-                  <text x="353.7" y="322.6">Student Union</text>
-                  <text x="464.4" y="319.5">Thomas</text>
-                  <text x="439.2" y="385.1">Speech Arts</text>
-                  <text x="393.6" y="422.4">Resnick SU</text>
-                  <text x="458.8" y="462.3">Music</text>
-                  <text x="183.5" y="498.2">Student Housing</text>
-                  <text x="285.2" y="524.6"><tspan x="285.2" dy="0">Health</tspan><tspan x="285.2" dy="11">Center</tspan></text>
-                  <text x="541.7" y="435.6"><tspan x="541.7" dy="0">Joyal</tspan><tspan x="541.7" dy="11">Admin</tspan></text>
-                  <text x="559.2" y="478.1"><tspan x="559.2" dy="0">University</tspan><tspan x="559.2" dy="11">High School</tspan></text>
-                  <text x="626.3" y="500.8">Alumni House</text>
-                  <text x="356.4" y="543.4">Lab School</text>
-                  <text x="438.8" y="524.6"><tspan x="438.8" dy="0">Kremen</tspan><tspan x="438.8" dy="11">Education</tspan></text>
-                  <text x="593" y="382.1">Conley Art</text>
-                  <text x="587.7" y="321.5"><tspan x="587.7" dy="0">Peters</tspan><tspan x="587.7" dy="11">Business</tspan></text>
-                  <text x="798.7" y="526.5">Rec Center</text>
-                  <text x="899.5" y="528.7">Save Mart Center</text>
-                  <text x="861.7" y="389.1">Save Mart Center Parking</text>
-                </g>
-
-                {/* Primary Road Network Matching Fresno State Map */}
-                <g stroke="#334155" strokeWidth="16" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="15.3" y1="-13.3" x2="15.3" y2="606.4" />{/* Cedar Ave */}
-                  <line x1="981" y1="-13.3" x2="981" y2="606.4" />{/* Chestnut Ave */}
-                  <line x1="15.3" y1="110.1" x2="981" y2="110.1" />{/* Barstow Ave */}
-                  <line x1="-5.3" y1="594" x2="1005.3" y2="594" />{/* Shaw Ave */}
-                  <line x1="189.2" y1="110.1" x2="189.2" y2="305.9" strokeWidth="10" />{/* Campus Dr */}
-                  <line x1="307.4" y1="110.1" x2="307.4" y2="229.3" strokeWidth="10" />{/* Jackson Ave */}
-                  <line x1="189.2" y1="229.3" x2="307.4" y2="229.3" strokeWidth="10" />{/* San Ramon W */}
-                  <line x1="415.4" y1="229.3" x2="655.1" y2="229.3" strokeWidth="10" />{/* San Ramon E */}
-                  <line x1="506.1" y1="110.1" x2="506.1" y2="253.3" strokeWidth="10" />{/* Maple N */}
-                  <line x1="508.2" y1="492" x2="508.2" y2="594" strokeWidth="10" />{/* Maple S */}
-                  <path d="M 721.4 110.1 L 721.4 170.2 Q 721.4 188.8 735.9 202.1 L 735.9 594" strokeWidth="10" />{/* Woodrow Ave */}
-                  <line x1="259" y1="433.5" x2="259" y2="594" strokeWidth="10" />{/* Barton Ave */}
-                  <line x1="309.2" y1="494.9" x2="508.2" y2="494.9" strokeWidth="8" />{/* Keats Ave */}
-                  <path d="M 517.3 490.7 Q 555.9 504 589.1 514.6 Q 603.7 518 629 517.8 L 662.9 518" strokeWidth="8" />{/* Matoian W */}
-                  <line x1="619.7" y1="445.5" x2="981" y2="445.5" strokeWidth="8" />{/* Matoian E */}
-                  <path d="M 735.9 348.4 L 808.5 348.4 Q 821.8 348.4 832.4 343.8 Q 841.8 340.4 855.1 340.4 L 981 340.4" strokeWidth="7" />{/* Bulldog Ln */}
-                  <path d="M 655.1 229.3 L 655.1 405.6 Q 655.1 418.9 662.9 428.2 L 662.9 518" strokeWidth="7" />{/* Service Rd */}
-                  <line x1="15.3" y1="434.8" x2="129.7" y2="434.8" strokeWidth="7" />{/* Scott Ave */}
-                  <line x1="107.4" y1="434.8" x2="107.4" y2="570.5" strokeWidth="7" />{/* Rowell Ave */}
-                  <line x1="107.4" y1="570.5" x2="296.5" y2="570.5" strokeWidth="7" />{/* Frontage Rd */}
-                  <path d="M 259 433.5 Q 297.9 433.5 303.9 462.8 L 311.6 555.9 Q 311.6 570.5 296.5 570.5" strokeWidth="7" />{/* Barton Loop */}
-                  <path d="M 554.5 229.3 Q 575.8 271.3 597.9 229.3" strokeWidth="7" />{/* Science Loop */}
-                  <line x1="618.4" y1="59.4" x2="618.4" y2="110.1" strokeWidth="7" />{/* Price Ave */}
-                  <line x1="618.4" y1="59.4" x2="898.9" y2="59.4" strokeWidth="7" />{/* Portals Ave */}
-                  <line x1="743" y1="59.4" x2="743" y2="110.1" strokeWidth="7" />{/* Sierra Vista Ave */}
-                  {/* Roundabouts and junction circles */}
-                  <circle cx="189.5" cy="318.5" r="8.6" strokeWidth="6" />
-                  <circle cx="508" cy="479.4" r="8.6" strokeWidth="6" />
-                  <circle cx="978.5" cy="110.4" r="8.6" strokeWidth="6" />
-                  <circle cx="978.7" cy="340.4" r="8.6" strokeWidth="6" />
-                </g>
-
-                {/* Street Name Labels */}
-                <g fill="#e2e8f0" fontSize="11" fontWeight="bold" textAnchor="middle">
-                  <text x="87.8" y="114.1">Barstow Ave</text>
-                  <text x="848.4" y="114.1">Barstow Ave</text>
-                  <text x="130.3" y="598">Shaw Ave</text>
-                  <text x="848.4" y="598">Shaw Ave</text>
-                  <text x="15.3" y="349.7" transform="rotate(-90 15.3 345.7)">Cedar Ave</text>
-                  <text x="981" y="509.3" transform="rotate(-90 981 505.3)">Chestnut Ave</text>
-                  <text x="506.1" y="174.2" transform="rotate(-90 506.1 170.2)">Maple Ave</text>
-                  <text x="508.2" y="551.9" transform="rotate(-90 508.2 547.9)">Maple Ave</text>
-                  <text x="735.9" y="273.9" transform="rotate(-90 735.9 269.9)">Woodrow Ave</text>
-                  <text x="189.2" y="210.1" transform="rotate(-90 189.2 206.1)">Campus Dr</text>
-                  <text x="307.4" y="176.9" transform="rotate(-90 307.4 172.9)">Jackson Ave</text>
-                  <text x="259" y="525.3" transform="rotate(-90 259 521.3)">Barton Ave</text>
-                  <text x="248.3" y="233.3">San Ramon Ave</text>
-                  <text x="465.4" y="233.3">San Ramon Ave</text>
-                  <text x="409.6" y="498.9">Keats Ave</text>
-                  <text x="808.5" y="449.5">Matoian Way</text>
-                  <text x="908.2" y="344.4">Bulldog Ln</text>
-                  <text x="71.8" y="438.8">Scott Ave</text>
-                  <text x="107.4" y="509.3" transform="rotate(-90 107.4 505.3)">Rowell Ave</text>
-                  <text x="183.5" y="574.5">Frontage Rd</text>
-                  <text x="801.9" y="63.4">Portals Ave</text>
-                </g>
-
-                {/* Interactive Fresno State Demo Parking Lot Polygons */}
-                {filteredLots.map((lot) => {
-                  if (!lot.coordinates) return null;
-                  const polyColor = getMapPolygonColor(lot);
-                  const isUpdating = lot.status === 'UPDATING' || lot.percentFull === null;
-                  const { points, label } = lot.coordinates;
-                  const layout = getLotLabelLayout(lot.coordinates);
-                  const statusText = isUpdating ? 'Updating...' : `${lot.percentFull}% Full`;
-                  const codeLength = layout.fitLength(lot.code, layout.codeSize, layout.codeDy);
-                  const statusLength = layout.fitLength(statusText, layout.statusSize, layout.statusDy);
-                  return (
-                    <g key={lot.id} className="map-lot-group" onClick={() => setSelectedForecastLot(lot)}>
-                      <polygon
-                        points={points.map(([px, py]) => `${px},${py}`).join(' ')}
-                        fill={polyColor}
-                        fillOpacity="0.42"
-                        stroke={polyColor}
-                        strokeWidth="2.4"
-                        strokeLinejoin="round"
-                      />
-                      <g transform={layout.transform}>
-                        <text
-                          x={label.x + layout.codeDx}
-                          y={label.y + layout.codeDy}
-                          textAnchor={layout.codeAnchor}
-                          fontSize={layout.codeSize}
-                          fontWeight="800"
-                          fill="#f8fafc"
-                          textLength={codeLength}
-                          lengthAdjust={codeLength ? 'spacingAndGlyphs' : undefined}
-                        >
-                          {lot.code}
-                        </text>
-                        <text
-                          x={label.x + layout.statusDx}
-                          y={label.y + layout.statusDy}
-                          textAnchor={layout.statusAnchor}
-                          fontSize={layout.statusSize}
-                          fontWeight="600"
-                          fill="#e2e8f0"
-                          textLength={statusLength}
-                          lengthAdjust={statusLength ? 'spacingAndGlyphs' : undefined}
-                        >
-                          {statusText}
-                        </text>
-                      </g>
-                    </g>
-                  );
-                })}
-              </svg>
-            </div>
-          </section>
+          <CampusMap lots={filteredLots} onSelectLot={setSelectedForecastLot} />
         )}
       </main>
 
-      {/* Occupancy Forecast Modal */}
-      {selectedForecastLot && (
-        <div className="modal-backdrop" onClick={() => setSelectedForecastLot(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <h3>Occupancy Forecast: {selectedForecastLot.name}</h3>
-                <span className="muted">{selectedForecastLot.permitColorName}</span>
-              </div>
-              <button className="close-btn" onClick={() => setSelectedForecastLot(null)}>×</button>
-            </div>
+      <ForecastModal lot={selectedForecastLot} onClose={() => setSelectedForecastLot(null)} />
 
-            <div className="interval-tabs">
-              <button
-                className={`chip ${forecastInterval === 'hourly' ? 'active' : ''}`}
-                onClick={() => setForecastInterval('hourly')}
-              >
-                Hourly Interval
-              </button>
-              <button
-                className={`chip ${forecastInterval === 'daily' ? 'active' : ''}`}
-                onClick={() => setForecastInterval('daily')}
-              >
-                Daily Interval
-              </button>
-            </div>
-
-            {!selectedForecastLot.hasForecastData ? (
-              <div className="empty-forecast">
-                <AlertTriangle size={32} color="#eab308" />
-                <p>
-                  <strong>Forecast Unavailable:</strong> Insufficient historical parking trend data for {selectedForecastLot.name}.
-                </p>
-              </div>
-            ) : (
-              <div className="forecast-list">
-                {selectedForecastLot.forecasts[forecastInterval].map((item, idx) => (
-                  <div key={idx} className="forecast-row">
-                    <span>{item.label}</span>
-                    <div className="forecast-bar-wrap">
-                      <div
-                        className="forecast-bar"
-                        style={{
-                          width: `${item.pctFull}%`,
-                          backgroundColor: item.pctFull >= 80 ? '#ef4444' : item.pctFull >= 50 ? '#eab308' : '#22c55e'
-                        }}
-                      />
-                    </div>
-                    <strong>{item.pctFull}% Full</strong>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* User Login Modal */}
       {showAccountModal && (
-        <div className="modal-backdrop" onClick={() => setShowAccountModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>User Login</h3>
-              <button className="close-btn" onClick={() => setShowAccountModal(false)}>×</button>
-            </div>
-            <form onSubmit={handleUserLogin} className="form-stack">
-              <p className="muted">Full account features will be implemented later.</p>
-              {currentUser && (
-                <p className="muted" style={{ color: '#4ade80' }}>
-                  Currently signed in as <strong>{currentUser.username}</strong>
-                </p>
-              )}
-              <label>
-                Username or Email
-                <input
-                  name="username"
-                  type="text"
-                  required
-                  defaultValue={currentUser?.username || ''}
-                  placeholder="e.g., bulldog_student"
-                />
-              </label>
-              <label>
-                Password
-                <input
-                  name="password"
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                />
-              </label>
-              <div className="form-actions">
-                {currentUser && (
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    onClick={() => {
-                      localStorage.removeItem('flocklite_user');
-                      setCurrentUser(null);
-                      appendSystemLog('[ACCOUNT] Logged out.');
-                      setShowAccountModal(false);
-                    }}
-                  >
-                    Log Out
-                  </button>
-                )}
-                <button type="submit" className="btn btn-primary">
-                  Log In
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <AccountModal
+          currentUser={currentUser}
+          onLogin={handleUserLogin}
+          onLogout={handleUserLogout}
+          onClose={() => setShowAccountModal(false)}
+        />
       )}
 
-      {/* Admin Login Modal */}
-      {showAdminModal && (
-        <div className="modal-backdrop" onClick={() => setShowAdminModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Admin Login</h3>
-              <button className="close-btn" onClick={() => setShowAdminModal(false)}>×</button>
-            </div>
+      <AdminModal
+        open={showAdminModal}
+        isAuthenticated={isAdminAuthenticated}
+        onLogin={() => {
+          setIsAdminAuthenticated(true);
+          appendSystemLog('[ADMIN] Admin login successful.');
+        }}
+        onLogout={() => {
+          setIsAdminAuthenticated(false);
+          appendSystemLog('[ADMIN] Admin logged out.');
+        }}
+        onClose={() => setShowAdminModal(false)}
+      />
 
-            <form onSubmit={handleAdminLogin} className="form-stack">
-              <p className="muted">Admin Login Failed</p>
-              <p className="muted">Full account features will be implemented later.</p>
-              {isAdminAuthenticated && (
-                <p className="muted" style={{ color: '#4ade80' }}>
-                  Currently authenticated as <strong>admin</strong>
-                </p>
-              )}
-              <label>
-                Admin User ID
-                <input
-                  value={adminUser}
-                  onChange={(e) => setAdminUser(e.target.value)}
-                  placeholder="admin"
-                  required
-                />
-              </label>
-              <label>
-                Admin Password
-                <input
-                  type="password"
-                  value={adminPass}
-                  onChange={(e) => setAdminPass(e.target.value)}
-                  placeholder="password"
-                  required
-                />
-              </label>
-              <div className="form-actions">
-                {isAdminAuthenticated && (
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    onClick={() => {
-                      setIsAdminAuthenticated(false);
-                      setAdminUser('');
-                      setAdminPass('');
-                      appendSystemLog('[ADMIN] Admin logged out.');
-                      setShowAdminModal(false);
-                    }}
-                  >
-                    Log Out
-                  </button>
-                )}
-                <button type="submit" className="btn btn-primary">
-                  Log In
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Hidden Demo Control Panel: Only visible when toggled with SHIFT + D */}
       {showDemoPanel && (
-        <aside className="demo-toolbar">
-          <div className="demo-toolbar-header">
-            <span><Sliders size={15} /> Demo Simulation Controls (Press SHIFT + D to hide)</span>
-            <button
-              className="demo-close-btn"
-              onClick={() => setShowDemoPanel(false)}
-              title="Hide Demo Controls"
-            >
-              ×
-            </button>
-          </div>
-
-          <div className="demo-toolbar-body">
-            <div className="demo-control-group">
-              <label>Simulate Backend Latency (3s Warning / 15s Timeout):</label>
-              <div className="btn-group">
-                <button
-                  className={`chip ${simulatedDelayMs === 200 ? 'active' : ''}`}
-                  onClick={() => {
-                    setSimulatedDelayMs(200);
-                    loadLots(200, lots);
-                  }}
-                >
-                  200ms (Normal)
-                </button>
-                <button
-                  className={`chip ${simulatedDelayMs === 3500 ? 'active' : ''}`}
-                  onClick={() => {
-                    setSimulatedDelayMs(3500);
-                    loadLots(3500, lots);
-                  }}
-                >
-                  3.5s (Slow Render Log)
-                </button>
-                <button
-                  className={`chip ${simulatedDelayMs === 15500 ? 'active' : ''}`}
-                  onClick={() => {
-                    setSimulatedDelayMs(15500);
-                    loadLots(15500, lots);
-                  }}
-                >
-                  15.5s (Timeout Error)
-                </button>
-              </div>
-            </div>
-
-            <div className="demo-control-group">
-              <label>Simulate Image Processor Failure ("Still Updating..."):</label>
-              <div className="btn-group">
-                {lots.map((l) => (
-                  <button
-                    key={l.id}
-                    className={`chip ${l.status === 'UPDATING' ? 'active' : ''}`}
-                    onClick={() => toggleLotUpdatingState(l.id)}
-                  >
-                    {l.code}: {l.status}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="demo-logs">
-              <strong>System Telemetry Log:</strong>
-              {systemLogs.map((log, index) => (
-                <div key={index} className="sys-log-line">{log}</div>
-              ))}
-            </div>
-          </div>
-        </aside>
+        <DemoToolbar
+          lots={lots}
+          simulatedDelayMs={simulatedDelayMs}
+          systemLogs={systemLogs}
+          onDelayChange={handleDelayChange}
+          onToggleLot={toggleLotUpdatingState}
+          onClose={() => setShowDemoPanel(false)}
+        />
       )}
     </div>
   );
