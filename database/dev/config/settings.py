@@ -83,7 +83,11 @@ DATABASES = {
         'NAME': os.environ.get('DB_NAME', 'operation_flock'),
         'USER': os.environ.get('DB_USER', ''),
         'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        # TODO:
+        # where the database is hosted, e.g. localhost,
         'HOST': os.environ.get('DB_HOST', ''),
+        # TODO:
+        # the port number being used to connect to the database, 
         'PORT': os.environ.get('DB_PORT', ''),
     }
 }

@@ -1,22 +1,54 @@
+
 # Specify filepatterns you want git to ignore.
 .DS_Store
 .DS_Store?
 .Spotlight_V100
 .Trashes
 Thumbs.db
+
 # Python
 .venv/
+venv/
 __pycache__/
+pycache/
 *.pyc
 
 # Local configuration
 .env
 .env.*
 !.env.example
+*.local
 
 # Local databases
 *.sqlite3
 
 # Frontend dependencies and build output
 node_modules/
+frontend/node_modules/
 dist/
+dist
+dist-ssr
+
+# YOLO model weights and generated files
+*.pt
+runs/
+zonecheck.png
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

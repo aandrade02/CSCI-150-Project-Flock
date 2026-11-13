@@ -8,7 +8,7 @@ export const INITIAL_LOTS = [
     name: 'Lot P1',
     permitType: 'Student',
     permitColorName: 'Green Permit (Student/Visitor)',
-    percentFull: 93,
+    percentFull: 74,
     status: 'OK',
     lastUpdated: 'Just now',
     fiveMinDelta: +11,
@@ -34,7 +34,7 @@ export const INITIAL_LOTS = [
     name: 'Lot P2',
     permitType: 'Student',
     permitColorName: 'Green Permit (Student/Visitor)',
-    percentFull: 64,
+    percentFull: 49,
     status: 'OK',
     lastUpdated: '1 min ago',
     fiveMinDelta: +3,
@@ -126,7 +126,7 @@ export const INITIAL_LOTS = [
     name: 'Lot P20',
     permitType: 'Student',
     permitColorName: 'Green Permit (Student/Visitor)',
-    percentFull: 48,
+    percentFull: 96,
     status: 'OK',
     lastUpdated: 'Just now',
     fiveMinDelta: -5,
@@ -152,7 +152,7 @@ export const INITIAL_LOTS = [
     name: 'Lot P30',
     permitType: 'Staff',
     permitColorName: 'Yellow Permit (Employee/Staff)',
-    percentFull: 63,
+    percentFull: 88,
     status: 'OK',
     lastUpdated: '3 mins ago',
     fiveMinDelta: -1,
@@ -200,23 +200,4 @@ export const INITIAL_LOTS = [
   }
 ];
 
-export const INITIAL_ADMIN_LOGS = [
-  {
-    id: 101,
-    timestamp: '2026-10-29 08:30:12',
-    adminUser: 'admin_oscar',
-    action: 'Updated Lot P20 (Barstow Ave) drone max altitude geofence to 120 ft'
-  },
-  {
-    id: 102,
-    timestamp: '2026-10-29 09:14:55',
-    adminUser: 'admin_marcelino',
-    action: 'Set capture frequency to 5 minutes for active campus lots'
-  },
-  {
-    id: 103,
-    timestamp: '2026-10-29 10:02:40',
-    adminUser: 'admin_oscar',
-    action: 'Verified camera calibration for Lot P1, Lot P30, and Lot P31'
-  }
-];
+export const INITIAL_ADMIN_LOGS = [];
