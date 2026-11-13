@@ -1,16 +1,22 @@
+name: flocklite
+
 services:
-  flocklite:
+  frontend:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: frontend
+    container_name: flocklite-frontend
     ports:
       - "5173:5173"
     environment:
-      - VITE_USE_MOCK=true
-      - VITE_API_BASE_URL=/api/v1
-      - VITE_BACKEND_PROXY_TARGET=http://flocklite-backend:8000
+      - VITE_USE_MOCK=false
+      - VITE_API_BASE_URL=/api
+      - VITE_BACKEND_PROXY_TARGET=http://flocklite-backend:800
     volumes:
       - .:/app
       - /app/node_modules
     restart: unless-stopped
+
+networks:
+  default:
+    name: flocklite-network
