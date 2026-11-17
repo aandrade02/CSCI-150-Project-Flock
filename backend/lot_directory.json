@@ -4,14 +4,22 @@ from shapely.geometry import Point, Polygon
 lot = json.load(open("LOT_DIRECTORY/Student_Lots/P20/lot.json"))
 
 Lot_Directory = {   
-    "lot": "Test1"
-    "name": "Test Lot 1",
-    "category": "Test"
-    "testimg5.png": [
+    "lot": "Test5"
+    "name": "Test Lot 5",
+    "category": "Test",
+    "id": "T5",
+    "image": "testimg5.png",
+    "coordinates": [
         ("zone1", Polygon([(30, 85), (1065, 85), (1065, 330), (30, 330)])),
         ("zone2", Polygon([(30, 480), (1065, 480), (1065, 600), (30, 600)])),
     ],
-    "testimg1.png": [
+
+     "lot": "Test1"
+    "name": "Test Lot 1",
+    "category": "Test",
+    "id": "T1",
+    "image": "testimg1.png",
+    "coordinates": [
         ("zone1", Polygon([(60, 0), (295,0), (60, 125), (290, 125)])),
         ("zone2", Polygon([(60, 205), (615, 205), (60, 325), (610, 325)])),
         ("zone3", Polygon([(60, 405), (610, 405), (60, 525), (610, 525)])),
@@ -19,6 +27,12 @@ Lot_Directory = {
     ],
 }
 
-//STUDENT_LOTS = \
+STUDENT_LOTS = {
+    "lot": "P20"
+    "name": "Student Lot 20",
+    "category": "Student",
+    "id": "P20",
+    "image": "p20_8k.png",
+}
 
 //STAFF_LOTS  = \
