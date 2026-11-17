@@ -14,6 +14,7 @@ runs/
 zonecheck.png
 backend/zone_check_*.png
 zone_check_*.png
+zones_*.png
 
 
 # Logs
