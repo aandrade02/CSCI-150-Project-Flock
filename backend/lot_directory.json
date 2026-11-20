@@ -184,136 +184,65 @@
         }
     ]
     },
+
     "P16S":{
     "name": "P16 Staff Lot",
     "category": "Staff",
-    "image": "staff_p16.jpg",
+    "images": [
+        {"file": "staff_p16(1).jpg", "label": "1", "offset": [0, -50]},
+        {"file": "staff_p16(2).jpg", "label": "2"}
+        ],
     "rows": [
         {
             "id": "zone1", 
-            "corners": [[], [], [], []],
-            "spots": 44,
-            "skip": [38,39]
+            "corners": [[638, 1911], [7849, 1893], [7844,2191], [638, 2275]],
+            "spots": 50
         },
         {
             "id": "zone2",
-            "corners": [[], [], [],[]],
-            "spots": 22
+            "corners": [[1735, 2766], [5763,2747], [5763, 3039],[1735, 3032]],
+            "spots": 28
         },
         {
             "id": "zone3",
-            "corners":[[], [], [],[]],
-            "spots": 24
-        },
-        {
-            "id": "zone4",
-            "corners": [[], [], [], []],
-            "spots": 24
-        },
-        {
-            "id": "zone5",
-            "corners": [[], [], [], []],
-            "spots": 24
-        },
-        {
-            "id": "zone6",
-            "corners": [[], [], [], []],
-            "spots": 25
-        },
-        {
-            "id": "zone7",
-            "corners": [[], [], [], []],
-            "spots": 25
-        },
-        {
-            "id": "zone8",
-            "corners" :[[], [], [], []],
-            "spots": 26,
-            "skip": [14,15,16]
-        },
-        {
-            "id": "zone9",
-            "corners" :[[], [], [], []],
-            "spots": 26
-        },
-        {
-            "id": "zone10",
-            "corners" :[[], [], [], []],
-            "spots": 24
-        },
-        {
-            "id": "zone11",
-            "corners" :[[], [], [], []],
-            "spots": 30,
-            "skip": [1,2,3,4,5]
+            "corners": [[5763, 2747], [6886,2753], [6886, 3034],[5763, 3039]],
+            "spots": 7
         }
     ]
     },
+
     "P18S":{
     "name": "P18 Staff Lot",
     "category": "Staff",
-    "image": "staff_p18.jpg",
+    "images": [
+        {"file": "staff_p18(1).jpg", "label": "1"},
+        {"file": "staff_p18(2).jpg", "label": "2"}
+        ],
     "rows": [
         {
             "id": "zone1", 
-            "corners": [[], [], [], []],
-            "spots": 44,
-            "skip": [38,39]
+            "corners": [[107, 1129], [5306, 1137], [5306, 1366], [107, 1346]],
+            "spots": 
         },
         {
             "id": "zone2",
-            "corners": [[], [], [],[]],
-            "spots": 22
+            "corners": [[], [], [], []],
+            "spots":,
+            "skip": []
         },
         {
             "id": "zone3",
-            "corners":[[], [], [],[]],
-            "spots": 24
+            "corners":[[6146, 1147], [8136, 1151], [6145, 1391],[8136, 1391]],
+            "spots": 16
         },
         {
             "id": "zone4",
-            "corners": [[], [], [], []],
-            "spots": 24
-        },
-        {
-            "id": "zone5",
-            "corners": [[], [], [], []],
-            "spots": 24
-        },
-        {
-            "id": "zone6",
-            "corners": [[], [], [], []],
-            "spots": 25
-        },
-        {
-            "id": "zone7",
-            "corners": [[], [], [], []],
-            "spots": 25
-        },
-        {
-            "id": "zone8",
-            "corners" :[[], [], [], []],
-            "spots": 26,
-            "skip": [14,15,16]
-        },
-        {
-            "id": "zone9",
-            "corners" :[[], [], [], []],
-            "spots": 26
-        },
-        {
-            "id": "zone10",
-            "corners" :[[], [], [], []],
-            "spots": 24
-        },
-        {
-            "id": "zone11",
-            "corners" :[[], [], [], []],
-            "spots": 30,
-            "skip": [1,2,3,4,5]
+            "corners": [[6000, 1760], [8113, 1784], [8113, 2010], [6000, 2010]],
+            "spots": 17
         }
     ]
     },
+
     "P23S":{
     "name": "P23 Staff Lot",
     "category": "Staff",
@@ -385,7 +314,10 @@
     "P30S":{
     "name": "P30 Staff Lot",
     "category": "Staff",
-    "image": "staff_p30.jpg",
+    "images": [
+        {"file": "staff_p30(1).jpg", "label": "1"},
+        {"file": "staff_p30(2).jpg", "label": "2"}
+        ],
     "rows": [
         {
             "id": "zone1", 
@@ -450,7 +382,10 @@
     "P31S":{
     "name": "P31 Staff Lot",
     "category": "Staff",
-    "image": "staff_p31.jpg",
+    "images": [
+        {"file": "staff_p31(1).jpg", "label": "1"},
+        {"file": "staff_p31(2).jpg", "label": "2"}
+        ],
     "rows": [
         {
             "id": "zone1", 
@@ -577,10 +512,13 @@
         }
     ]
     },
-    "P16":{
-    "name": "P16 Student Lot",
+    "P15":{
+    "name": "P15 Student Lot",
     "category": "Student",
-    "image": "student_p16.jpg",
+    "images": [
+        {"file": "student_p15(1).jpg", "label": "1"},
+        {"file": "student_p15(2).jpg", "label": "2"}
+        ],
     "rows": [
         {
             "id": "zone1", 
