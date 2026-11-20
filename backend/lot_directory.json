@@ -195,7 +195,7 @@
     "rows": [
         {
             "id": "zone1", 
-            "corners": [[638, 1911], [7849, 1893], [7844,2191], [638, 2275]],
+            "corners": [[638, 1911], [7849, 1893], [7844,2191], [648, 2219]],
             "spots": 50
         },
         {
@@ -222,12 +222,12 @@
         {
             "id": "zone1", 
             "corners": [[107, 1129], [5306, 1137], [5306, 1366], [107, 1346]],
-            "spots": 
+            "spots": 42
         },
         {
             "id": "zone2",
-            "corners": [[], [], [], []],
-            "spots":,
+            "corners": [[456, 1722], [5447, 1764], [5445, 2009], [456, 1975]],
+            "spots": 41,
             "skip": []
         },
         {
@@ -451,6 +451,136 @@
     "name": "P1 Student Lot",
     "category": "Student",
     "image": "student_p1.jpg",
+    "rows": [
+        {
+            "id": "zone1", 
+            "corners": [[], [], [], []],
+            "spots": 44,
+            "skip": [38,39]
+        },
+        {
+            "id": "zone2",
+            "corners": [[], [], [],[]],
+            "spots": 22
+        },
+        {
+            "id": "zone3",
+            "corners":[[], [], [],[]],
+            "spots": 24
+        },
+        {
+            "id": "zone4",
+            "corners": [[], [], [], []],
+            "spots": 24
+        },
+        {
+            "id": "zone5",
+            "corners": [[], [], [], []],
+            "spots": 24
+        },
+        {
+            "id": "zone6",
+            "corners": [[], [], [], []],
+            "spots": 25
+        },
+        {
+            "id": "zone7",
+            "corners": [[], [], [], []],
+            "spots": 25
+        },
+        {
+            "id": "zone8",
+            "corners" :[[], [], [], []],
+            "spots": 26,
+            "skip": [14,15,16]
+        },
+        {
+            "id": "zone9",
+            "corners" :[[], [], [], []],
+            "spots": 26
+        },
+        {
+            "id": "zone10",
+            "corners" :[[], [], [], []],
+            "spots": 24
+        },
+        {
+            "id": "zone11",
+            "corners" :[[], [], [], []],
+            "spots": 30,
+            "skip": [1,2,3,4,5]
+        }
+    ]
+    },
+    "P5":{
+    "name": "P5 Student Lot",
+    "category": "Student",
+    "images":["student_p5.jpg"],
+    "rows": [
+        {
+            "id": "zone1", 
+            "corners": [[], [], [], []],
+            "spots": 44,
+            "skip": [38,39]
+        },
+        {
+            "id": "zone2",
+            "corners": [[], [], [],[]],
+            "spots": 22
+        },
+        {
+            "id": "zone3",
+            "corners":[[], [], [],[]],
+            "spots": 24
+        },
+        {
+            "id": "zone4",
+            "corners": [[], [], [], []],
+            "spots": 24
+        },
+        {
+            "id": "zone5",
+            "corners": [[], [], [], []],
+            "spots": 24
+        },
+        {
+            "id": "zone6",
+            "corners": [[], [], [], []],
+            "spots": 25
+        },
+        {
+            "id": "zone7",
+            "corners": [[], [], [], []],
+            "spots": 25
+        },
+        {
+            "id": "zone8",
+            "corners" :[[], [], [], []],
+            "spots": 26,
+            "skip": [14,15,16]
+        },
+        {
+            "id": "zone9",
+            "corners" :[[], [], [], []],
+            "spots": 26
+        },
+        {
+            "id": "zone10",
+            "corners" :[[], [], [], []],
+            "spots": 24
+        },
+        {
+            "id": "zone11",
+            "corners" :[[], [], [], []],
+            "spots": 30,
+            "skip": [1,2,3,4,5]
+        }
+    ]
+    },
+    "P6":{
+    "name": "P6 Student Lot",
+    "category": "Student",
+    "image": ["student_p6.jpg"],
     "rows": [
         {
             "id": "zone1", 
