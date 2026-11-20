@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import LotList from './LotList';
+import LotList, { LotCard } from './LotList';
 
 const OPEN_LOT = {
   id: 'lot-a',
@@ -68,11 +68,32 @@ describe('LotList', () => {
     expect(card.getByText('Yellow Permit • Staff')).toBeInTheDocument();
   });
 
-  it('passes the lot to onSelectLot when Forecast is clicked', async () => {
+  it('passes the lot to onSelectLot when its card is tapped', async () => {
     const onSelectLot = vi.fn();
     renderList({ onSelectLot });
-    await userEvent.click(within(cardFor('Lot A')).getByRole('button', { name: 'Forecast' }));
+    await userEvent.click(cardFor('Lot A'));
     expect(onSelectLot).toHaveBeenCalledWith(OPEN_LOT);
+  });
+
+  it('opens a card from the keyboard', async () => {
+    const onSelectLot = vi.fn();
+    renderList({ onSelectLot });
+    cardFor('Lot B').focus();
+    await userEvent.keyboard('{Enter}');
+    expect(onSelectLot).toHaveBeenCalledWith(UPDATING_LOT);
+  });
+
+  it('opens a card with the Space key', async () => {
+    const onSelectLot = vi.fn();
+    renderList({ onSelectLot });
+    cardFor('Lot A').focus();
+    await userEvent.keyboard(' ');
+    expect(onSelectLot).toHaveBeenCalledWith(OPEN_LOT);
+  });
+
+  it('hides the list from assistive tech while covered by the forecast', () => {
+    renderList({ covered: true });
+    expect(screen.queryByRole('heading', { name: 'Lot Occupancy Status' })).not.toBeInTheDocument();
   });
 
   it('calls onRefresh when Refresh is clicked', async () => {
@@ -85,5 +106,30 @@ describe('LotList', () => {
   it('disables the refresh button while loading', () => {
     renderList({ loading: true });
     expect(screen.getByRole('button', { name: 'Loading...' })).toBeDisabled();
+  });
+});
+
+describe('LotCard', () => {
+  it('is a tappable button with a Forecast hint when it has onSelectLot', () => {
+    const { container } = render(<LotCard lot={OPEN_LOT} onSelectLot={() => {}} />);
+    expect(screen.getByRole('button')).toHaveAttribute('data-lot-id', 'lot-a');
+    expect(screen.getByText('Forecast')).toBeInTheDocument();
+    expect(container.querySelector('.lot-card')).toHaveClass('tappable');
+  });
+
+  it('is plain and not tappable without onSelectLot', () => {
+    const { container } = render(<LotCard lot={OPEN_LOT} />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByText('Forecast')).not.toBeInTheDocument();
+    expect(container.querySelector('.lot-card')).not.toHaveClass('tappable');
+    expect(screen.getByRole('heading', { name: 'Lot A' })).toBeInTheDocument();
+  });
+
+  it('lets screen readers hear the occupancy, not just the lot name', () => {
+    render(<LotCard lot={OPEN_LOT} onSelectLot={() => {}} />);
+    const card = screen.getByRole('button');
+    expect(card).toHaveAccessibleName(/Lot A/);
+    expect(card).toHaveAccessibleName(/74% Full/);
+    expect(card).toHaveAccessibleName(/26% Open/);
   });
 });

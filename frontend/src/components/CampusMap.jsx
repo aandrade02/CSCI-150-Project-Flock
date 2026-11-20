@@ -1,10 +1,12 @@
 import CampusMapBase from './CampusMapBase';
 import { getLotLabelLayout } from '../services/lotLabelLayout';
 import { isLotUpdating, getMapPolygonColor } from '../services/lotStatus';
+import { MAP_WIDTH, MAP_HEIGHT } from '../services/mapView';
+import { getLotHeatZone } from '../services/lotHeatZone';
 
 // Interactive lot polygon with its code and status labels
-function MapLot({ lot, onSelectLot }) {
-  const polyColor = getMapPolygonColor(lot);
+function MapLot({ lot, onSelectLot, selected, showHeatZones }) {
+  const polyColor = showHeatZones ? getLotHeatZone(lot).color : getMapPolygonColor(lot);
   const isUpdating = isLotUpdating(lot);
   const { points, label } = lot.coordinates;
   const layout = getLotLabelLayout(lot.coordinates);
@@ -13,13 +15,13 @@ function MapLot({ lot, onSelectLot }) {
   const statusLength = layout.fitLength(statusText, layout.statusSize, layout.statusDy);
 
   return (
-    <g className="map-lot-group" onClick={() => onSelectLot(lot)}>
+    <g className={`map-lot-group ${selected ? 'selected' : ''}`} onClick={() => onSelectLot(lot)}>
       <polygon
         points={points.map(([px, py]) => `${px},${py}`).join(' ')}
         fill={polyColor}
         fillOpacity="0.42"
         stroke={polyColor}
-        strokeWidth="2.4"
+        strokeWidth={selected ? 4 : 2.4}
         strokeLinejoin="round"
       />
       <g transform={layout.transform}>
@@ -52,15 +54,44 @@ function MapLot({ lot, onSelectLot }) {
   );
 }
 
+// Campus SVG with the interactive lot polygons; selectedLotId outlines one lot and dims the rest.
+export function CampusMapSvg({ lots, onSelectLot, selectedLotId = null, showHeatZones = false, viewBox = `0 0 ${MAP_WIDTH} ${MAP_HEIGHT}` }) {
+  return (
+    <svg
+      viewBox={viewBox}
+      preserveAspectRatio="xMidYMid meet"
+      className={`campus-svg ${selectedLotId ? 'has-selection' : ''}`}
+    >
+      <rect x="0" y="0" width={MAP_WIDTH} height={MAP_HEIGHT} fill="#0b1120" />
+
+      <CampusMapBase />
+
+      {/* Interactive Fresno State Demo Parking Lot Polygons */}
+      {lots.map((lot) => {
+        if (!lot.coordinates) return null;
+        return (
+          <MapLot
+            key={lot.id}
+            lot={lot}
+            onSelectLot={onSelectLot}
+            selected={lot.id === selectedLotId}
+            showHeatZones={showHeatZones}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
 // Right Column: Customized Fresno State Static Parking Map
-export default function CampusMap({ lots, onSelectLot }) {
+export default function CampusMap({ lots, onSelectLot, selectedLotId, showHeatZones }) {
   return (
     <section className="panel map-panel">
       <div className="panel-header">
         <div>
           <h2>Fresno State Campus Parking Map</h2>
           <p className="muted">
-            Click any highlighted lot on the map to view hourly and daily occupancy forecasts
+            Click any highlighted lot on the map to view its occupancy forecast
           </p>
         </div>
       </div>
@@ -81,17 +112,12 @@ export default function CampusMap({ lots, onSelectLot }) {
 
       {/* Customized Fresno State Campus SVG Map */}
       <div className="static-map-canvas">
-        <svg viewBox="0 0 1000 612" preserveAspectRatio="xMidYMid meet" className="campus-svg">
-          <rect x="0" y="0" width="1000" height="612" fill="#0b1120" />
-
-          <CampusMapBase />
-
-          {/* Interactive Fresno State Demo Parking Lot Polygons */}
-          {lots.map((lot) => {
-            if (!lot.coordinates) return null;
-            return <MapLot key={lot.id} lot={lot} onSelectLot={onSelectLot} />;
-          })}
-        </svg>
+        <CampusMapSvg
+          lots={lots}
+          onSelectLot={onSelectLot}
+          selectedLotId={selectedLotId}
+          showHeatZones={showHeatZones}
+        />
       </div>
     </section>
   );

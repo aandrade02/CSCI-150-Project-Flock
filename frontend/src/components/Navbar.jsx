@@ -1,4 +1,5 @@
-import { Map, List, Shield, User } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Menu, X, Shield, User } from 'lucide-react';
 
 const PERMIT_OPTIONS = [
   { id: 'All', label: 'All Lots' },
@@ -6,26 +7,16 @@ const PERMIT_OPTIONS = [
   { id: 'Staff', label: 'Yellow (Staff)' }
 ];
 
-// Top Navigation Bar
-export default function Navbar({
-  permitFilter,
-  onPermitChange,
-  mobileTab,
-  onTabChange,
-  currentUser,
-  onOpenAccount,
-  onOpenAdmin
-}) {
-  return (
-    <header className="navbar">
-      <div className="brand">
-        <span className="brand-badge">FlockLite</span>
-        <div>
-          <h1>Fresno State Parking Lot Occupancy</h1>
-          <span className="subtitle">Real-Time Aerial Telemetry • Status Bars Show % Full</span>
-        </div>
-      </div>
+// Permit filter chips, account, and admin buttons, shared by the desktop bar and the mobile menu.
+// onAction runs after any choice so the mobile menu can close itself.
+function NavOptions({ permitFilter, onPermitChange, currentUser, onOpenAccount, onOpenAdmin, onAction = () => {} }) {
+  const run = (fn) => () => {
+    fn();
+    onAction();
+  };
 
+  return (
+    <>
       {/* Permit Type Filter (Green Student vs Yellow Staff) */}
       <div className="permit-filter" role="group" aria-label="Permit Filter">
         <span className="filter-label">Permit:</span>
@@ -33,48 +24,95 @@ export default function Navbar({
           <button
             key={item.id}
             className={`chip ${permitFilter === item.id ? 'active' : ''}`}
-            onClick={() => onPermitChange(item.id)}
+            onClick={run(() => onPermitChange(item.id))}
           >
             {item.label}
           </button>
         ))}
       </div>
 
-      {/* View Mode & Modals */}
       <div className="nav-actions">
-        <div className="view-switcher">
-          <button
-            className={`chip ${mobileTab === 'split' ? 'active' : ''}`}
-            onClick={() => onTabChange('split')}
-            title="Split Screen View"
-          >
-            Split
-          </button>
-          <button
-            className={`chip ${mobileTab === 'list' ? 'active' : ''}`}
-            onClick={() => onTabChange('list')}
-            title="List View"
-          >
-            <List size={15} /> List
-          </button>
-          <button
-            className={`chip ${mobileTab === 'map' ? 'active' : ''}`}
-            onClick={() => onTabChange('map')}
-            title="Map View"
-          >
-            <Map size={15} /> Map
-          </button>
-        </div>
-
-        <button className="btn btn-outline" onClick={onOpenAccount}>
+        <button className="btn btn-outline" onClick={run(onOpenAccount)}>
           <User size={16} />
           {currentUser ? currentUser.username : 'Account'}
         </button>
 
-        <button className="btn btn-outline" onClick={onOpenAdmin}>
+        <button className="btn btn-outline" onClick={run(onOpenAdmin)}>
           <Shield size={16} /> Admin
         </button>
       </div>
+    </>
+  );
+}
+
+// Top Navigation Bar: inline options on desktop, hamburger slide-out menu on mobile
+export default function Navbar({ isMobile, ...options }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  // Rotating to landscape drops the menu, so it doesn't reappear when rotating back
+  if (!isMobile && menuOpen) setMenuOpen(false);
+
+  // Escape closes the menu. Capture phase, so it runs (and claims the key) before the forecast panel's listener.
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const handleKeyDown = (e) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      setMenuOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [menuOpen]);
+
+  if (!isMobile) {
+    return (
+      <header className="navbar">
+        <div className="brand">
+          <span className="brand-badge">FlockLite</span>
+          <div>
+            <h1>Fresno State Parking Lot Occupancy</h1>
+            <span className="subtitle">Real-Time Aerial Telemetry • Status Bars Show % Full</span>
+          </div>
+        </div>
+        <NavOptions {...options} />
+      </header>
+    );
+  }
+
+  return (
+    <header className="navbar mobile">
+      <div className="brand">
+        <span className="brand-badge">FlockLite</span>
+        <h1>Fresno State Parking</h1>
+      </div>
+
+      <button
+        className="icon-btn"
+        aria-label="Open menu"
+        aria-expanded={menuOpen}
+        onClick={() => setMenuOpen(true)}
+      >
+        <Menu size={22} />
+      </button>
+
+      <div
+        className={`menu-backdrop ${menuOpen ? 'open' : ''}`}
+        onClick={() => setMenuOpen(false)}
+        aria-hidden="true"
+      />
+      <nav
+        className={`mobile-menu ${menuOpen ? 'open' : ''}`}
+        aria-label="Main menu"
+        aria-hidden={!menuOpen}
+        inert={!menuOpen}
+      >
+        <div className="mobile-menu-header">
+          <span className="brand-badge">FlockLite</span>
+          <button className="icon-btn" aria-label="Close menu" onClick={() => setMenuOpen(false)}>
+            <X size={22} />
+          </button>
+        </div>
+        <NavOptions {...options} onAction={() => setMenuOpen(false)} />
+      </nav>
     </header>
   );
 }

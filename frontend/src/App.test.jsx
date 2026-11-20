@@ -23,6 +23,15 @@ const click = (name) => fireEvent.click(screen.getByRole('button', { name }));
 const pressShiftD = (target = window) => fireEvent.keyDown(target, { key: 'D', shiftKey: true });
 const cardFor = (name) => screen.getByRole('heading', { name }).closest('.lot-card');
 
+// jsdom has no matchMedia, which the app reads as desktop. This makes the screen portrait (mobile).
+const useMobileScreen = () =>
+  vi.stubGlobal('matchMedia', (query) => ({
+    matches: true,
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {}
+  }));
+
 const fillLogin = (userLabel, username, passwordLabel, password) => {
   fireEvent.change(screen.getByLabelText(userLabel), { target: { value: username } });
   fireEvent.change(screen.getByLabelText(passwordLabel), { target: { value: password } });
@@ -62,46 +71,150 @@ describe('App: permit filter', () => {
   });
 });
 
-describe('App: view switcher', () => {
+describe('App: layout', () => {
   const listHeading = () => screen.queryByRole('heading', { name: 'Lot Occupancy Status' });
   const mapHeading = () => screen.queryByRole('heading', { name: 'Fresno State Campus Parking Map' });
 
-  it('shows the list and the map side by side by default', async () => {
+  it('shows the list and the map side by side on desktop, with no view switcher', async () => {
     await renderApp();
     expect(listHeading()).toBeInTheDocument();
     expect(mapHeading()).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Split/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open menu' })).not.toBeInTheDocument();
   });
 
-  it('shows only the list, only the map, then both again', async () => {
+  it('shows only the list on a portrait (mobile) screen', async () => {
+    useMobileScreen();
     await renderApp();
-
-    click('List');
     expect(listHeading()).toBeInTheDocument();
     expect(mapHeading()).not.toBeInTheDocument();
+  });
+});
 
-    click('Map');
-    expect(listHeading()).not.toBeInTheDocument();
-    expect(mapHeading()).toBeInTheDocument();
+describe('App: mobile menu', () => {
+  const menu = () => screen.queryByRole('navigation', { name: 'Main menu' });
 
-    click('Split');
-    expect(listHeading()).toBeInTheDocument();
-    expect(mapHeading()).toBeInTheDocument();
+  it('slides the navbar options out from the hamburger button', async () => {
+    useMobileScreen();
+    await renderApp();
+    expect(menu()).not.toBeInTheDocument();
+
+    click('Open menu');
+    expect(menu()).toBeInTheDocument();
+    expect(within(menu()).getByRole('button', { name: 'Account' })).toBeInTheDocument();
+    expect(within(menu()).getByRole('button', { name: 'Admin' })).toBeInTheDocument();
+
+    click('Close menu');
+    expect(menu()).not.toBeInTheDocument();
+  });
+
+  it('applies a permit filter and closes the menu', async () => {
+    useMobileScreen();
+    await renderApp();
+
+    click('Open menu');
+    click('Yellow (Staff)');
+    await advance(200);
+
+    expect(menu()).not.toBeInTheDocument();
+    expect(screen.getByText(new RegExp(`Showing ${STAFF_COUNT} of ${TOTAL} lot`))).toBeInTheDocument();
+  });
+
+  it('opens the account modal from the menu', async () => {
+    useMobileScreen();
+    await renderApp();
+
+    click('Open menu');
+    click('Account');
+    expect(screen.getByRole('heading', { name: 'User Login' })).toBeInTheDocument();
   });
 });
 
 describe('App: forecast', () => {
-  it('opens the forecast from a lot card and from the map', async () => {
+  const panelTitle = `${FIRST_LOT.name} Forecast`;
+  const panel = () => screen.queryByRole('heading', { name: panelTitle });
+
+  it('slides the forecast over the list from a lot card and from the map', async () => {
     const { container } = await renderApp();
-    const title = `Occupancy Forecast: ${FIRST_LOT.name}`;
 
-    fireEvent.click(within(cardFor(FIRST_LOT.name)).getByRole('button', { name: 'Forecast' }));
-    expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
+    fireEvent.click(cardFor(FIRST_LOT.name));
+    expect(panel()).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Lot Occupancy Status' })).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Hourly forecast' })).toBeInTheDocument();
+    expect(container.querySelector('.mini-map')).toBeNull();
 
-    click('×');
-    expect(screen.queryByRole('heading', { name: title })).not.toBeInTheDocument();
+    click('Lots');
+    expect(panel()).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Lot Occupancy Status' })).toBeInTheDocument();
 
     fireEvent.click(container.querySelector('.map-lot-group'));
-    expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
+    expect(panel()).toBeInTheDocument();
+  });
+
+  it('closes with Escape and gives the list back', async () => {
+    await renderApp();
+    fireEvent.click(cardFor(FIRST_LOT.name));
+    expect(panel()).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(panel()).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Lot Occupancy Status' })).toBeInTheDocument();
+  });
+
+  it('outlines the open lot on the main map until it closes', async () => {
+    const { container } = await renderApp();
+    const selected = () => container.querySelectorAll('.map-panel .map-lot-group.selected');
+    expect(selected()).toHaveLength(0);
+
+    fireEvent.click(cardFor(FIRST_LOT.name));
+    expect(selected()).toHaveLength(1);
+    expect(selected()[0]).toHaveTextContent(FIRST_LOT.code);
+
+    click('Lots');
+    expect(selected()).toHaveLength(0);
+  });
+
+  it('closes the forecast when the permit filter hides its lot, and stays closed after', async () => {
+    const { container } = await renderApp();
+    fireEvent.click(cardFor(FIRST_LOT.name)); // a student lot
+    click('Yellow (Staff)');
+    await advance(200);
+
+    expect(panel()).not.toBeInTheDocument();
+    expect(container.querySelector('.map-lot-group.selected')).toBeNull();
+    expect(screen.getByText(new RegExp(`Showing ${STAFF_COUNT} of ${TOTAL} lot`))).toBeInTheDocument();
+
+    click('All Lots');
+    await advance(200);
+    expect(panel()).not.toBeInTheDocument();
+  });
+
+  it('ignores Escape while a modal is open over the forecast', async () => {
+    await renderApp();
+    fireEvent.click(cardFor(FIRST_LOT.name));
+    click('Account');
+
+    fireEvent.keyDown(screen.getByLabelText('Username or Email'), { key: 'Escape' });
+    expect(panel()).toBeInTheDocument();
+  });
+
+  it('includes a mini map of the lot on mobile', async () => {
+    useMobileScreen();
+    const { container } = await renderApp();
+
+    fireEvent.click(cardFor(FIRST_LOT.name));
+    expect(panel()).toBeInTheDocument();
+    expect(container.querySelector('.mini-map .map-lot-group.selected')).not.toBeNull();
+  });
+
+  it('keeps the open forecast in sync when the lot changes', async () => {
+    await renderApp();
+    fireEvent.click(cardFor(FIRST_LOT.name));
+    pressShiftD();
+
+    click(`${FIRST_LOT.code}: OK`);
+    const forecast = panel().closest('.forecast-panel');
+    expect(within(forecast).getByText('Still Updating...')).toBeInTheDocument();
   });
 });
 
