@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { INITIAL_LOTS } from './mocks/mockData';
 import { fetchParkingLots } from './services/parkingService';
@@ -6,10 +6,11 @@ import { loadSavedUser, saveUser, clearSavedUser } from './services/userStorage'
 import Navbar from './components/Navbar';
 import LotList from './components/LotList';
 import CampusMap from './components/CampusMap';
-import ForecastModal from './components/ForecastModal';
+import ForecastPanel from './components/ForecastPanel';
 import AccountModal from './components/AccountModal';
 import AdminModal from './components/AdminModal';
 import DemoToolbar from './components/DemoToolbar';
+import useIsMobile from './hooks/useIsMobile';
 
 export default function App() {
   // Core Data States
@@ -24,9 +25,9 @@ export default function App() {
   const [permitFilter, setPermitFilter] = useState(() => loadSavedUser()?.permitType || 'All');
   const [currentUser, setCurrentUser] = useState(loadSavedUser);
 
-  // View States
-  const [mobileTab, setMobileTab] = useState('split'); // 'split' | 'list' | 'map'
-  const [selectedForecastLot, setSelectedForecastLot] = useState(null);
+  // View States: split list + map on desktop, list only on mobile (portrait screens)
+  const isMobile = useIsMobile();
+  const [selectedLotId, setSelectedLotId] = useState(null);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
 
@@ -117,6 +118,11 @@ export default function App() {
     appendSystemLog(`[DEMO] Toggled ${lotId} status.`);
   };
 
+  // Look the selected lot up by id so its forecast panel follows refreshed data
+  const selectedLot = lots.find((lot) => lot.id === selectedLotId) ?? null;
+  const selectLot = useCallback((lot) => setSelectedLotId(lot.id), []);
+  const closeForecast = useCallback(() => setSelectedLotId(null), []);
+
   const filteredLots = lots.filter((lot) =>
     permitFilter === 'All' ? true : (lot.permitType || '').toLowerCase() === permitFilter.toLowerCase()
   );
@@ -148,8 +154,7 @@ export default function App() {
       <Navbar
         permitFilter={permitFilter}
         onPermitChange={handlePermitChange}
-        mobileTab={mobileTab}
-        onTabChange={setMobileTab}
+        isMobile={isMobile}
         currentUser={currentUser}
         onOpenAccount={() => setShowAccountModal(true)}
         onOpenAdmin={() => setShowAdminModal(true)}
@@ -167,24 +172,31 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Content Area: Split-Screen on Desktop or Toggled View */}
-      <main className={`dashboard-grid mode-${mobileTab}`}>
-        {(mobileTab === 'split' || mobileTab === 'list') && (
+      {/* Main Content Area: Split-Screen on Desktop, List on Mobile.
+          The forecast panel slides over the list column. */}
+      <main className={`dashboard-grid ${isMobile ? 'mode-list' : 'mode-split'}`}>
+        <div className="list-column">
           <LotList
             lots={filteredLots}
             totalCount={lots.length}
             loading={loading}
             onRefresh={() => loadLots(simulatedDelayMs, lots)}
-            onSelectLot={setSelectedForecastLot}
+            onSelectLot={selectLot}
+            covered={Boolean(selectedLot)}
           />
-        )}
+          <ForecastPanel
+            lot={selectedLot}
+            lots={filteredLots}
+            isMobile={isMobile}
+            onSelectLot={selectLot}
+            onClose={closeForecast}
+          />
+        </div>
 
-        {(mobileTab === 'split' || mobileTab === 'map') && (
-          <CampusMap lots={filteredLots} onSelectLot={setSelectedForecastLot} />
+        {!isMobile && (
+          <CampusMap lots={filteredLots} onSelectLot={selectLot} selectedLotId={selectedLotId} />
         )}
       </main>
-
-      <ForecastModal lot={selectedForecastLot} onClose={() => setSelectedForecastLot(null)} />
 
       {showAccountModal && (
         <AccountModal

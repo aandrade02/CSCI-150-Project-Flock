@@ -4,6 +4,7 @@ import { LotCard } from './LotList';
 import { CampusMapSvg } from './CampusMap';
 import { isLotUpdating, getOccupancyColor } from '../services/lotStatus';
 import { getFocusViewBox } from '../services/mapView';
+import { toClockHourLabel } from '../services/forecastLabels';
 
 // Weather-style "condition" for an occupancy level: icon + word, colored like the status bars.
 function OccupancyIcon({ pctFull, size = 22 }) {
@@ -13,8 +14,20 @@ function OccupancyIcon({ pctFull, size = 22 }) {
   return <CircleParking size={size} color={color} aria-label="Open" />;
 }
 
-// Horizontal hourly strip, like the iOS Weather hourly card.
-function HourlyCard({ lot, hourly }) {
+// Current time, refreshed every minute so hour labels roll over while the panel is open.
+function useCurrentTime() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+  return now;
+}
+
+// Horizontal hourly strip, like the iOS Weather hourly card. Hours are shown as clock times.
+function HourlyCard({ lot, forecast }) {
+  const now = useCurrentTime();
+  const hourly = forecast.map((item) => ({ ...item, label: toClockHourLabel(item.label, now) }));
   const peak = hourly.reduce((max, item) => (!max || item.pctFull > max.pctFull ? item : max), null);
   const columns = isLotUpdating(lot) ? hourly : [{ label: 'Now', pctFull: lot.percentFull }, ...hourly];
 
@@ -126,7 +139,7 @@ export default function ForecastPanel({ lot, lots, isMobile, onSelectLot, onClos
           </section>
         ) : (
           <>
-            <HourlyCard lot={shownLot} hourly={shownLot.forecasts.hourly} />
+            <HourlyCard lot={shownLot} forecast={shownLot.forecasts.hourly} />
             <DailyCard daily={shownLot.forecasts.daily} />
           </>
         )}

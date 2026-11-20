@@ -1,13 +1,28 @@
-import { RefreshCw, TrendingUp, Clock } from 'lucide-react';
+import { RefreshCw, ChevronRight, Clock } from 'lucide-react';
 import { isLotUpdating, isStaffLot, getStatusBarColor } from '../services/lotStatus';
 
-function LotCard({ lot, onSelectLot }) {
+// Lot status card. With onSelectLot it is tappable and opens that lot's forecast.
+export function LotCard({ lot, onSelectLot }) {
   const isUpdating = isLotUpdating(lot);
   const barColor = getStatusBarColor(lot);
   const openPct = isUpdating ? null : 100 - lot.percentFull;
+  const tapProps = onSelectLot
+    ? {
+        role: 'button',
+        tabIndex: 0,
+        'aria-label': `${lot.name} forecast`,
+        onClick: () => onSelectLot(lot),
+        onKeyDown: (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onSelectLot(lot);
+          }
+        }
+      }
+    : {};
 
   return (
-    <div className="lot-card">
+    <div className={`lot-card ${onSelectLot ? 'tappable' : ''}`} {...tapProps}>
       <div className="lot-card-top">
         <div>
           <span className={`permit-tag ${(lot.permitType || 'Student').toLowerCase()}`}>
@@ -51,23 +66,20 @@ function LotCard({ lot, onSelectLot }) {
           )}
         </span>
 
-        <div className="card-actions">
-          <button
-            className="btn-link"
-            onClick={() => onSelectLot(lot)}
-          >
-            <TrendingUp size={14} /> Forecast
-          </button>
-        </div>
+        {onSelectLot && (
+          <span className="card-hint">
+            Forecast <ChevronRight size={14} />
+          </span>
+        )}
       </div>
     </div>
   );
 }
 
 // Left Column: Parking Lot List & Reversed Status Bars (% Full)
-export default function LotList({ lots, totalCount, loading, onRefresh, onSelectLot }) {
+export default function LotList({ lots, totalCount, loading, onRefresh, onSelectLot, covered = false }) {
   return (
-    <section className="panel list-panel">
+    <section className="panel list-panel" aria-hidden={covered || undefined} inert={covered}>
       <div className="panel-header">
         <div>
           <h2>Lot Occupancy Status</h2>

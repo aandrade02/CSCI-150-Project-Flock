@@ -68,11 +68,24 @@ describe('LotList', () => {
     expect(card.getByText('Yellow Permit • Staff')).toBeInTheDocument();
   });
 
-  it('passes the lot to onSelectLot when Forecast is clicked', async () => {
+  it('passes the lot to onSelectLot when its card is tapped', async () => {
     const onSelectLot = vi.fn();
     renderList({ onSelectLot });
-    await userEvent.click(within(cardFor('Lot A')).getByRole('button', { name: 'Forecast' }));
+    await userEvent.click(cardFor('Lot A'));
     expect(onSelectLot).toHaveBeenCalledWith(OPEN_LOT);
+  });
+
+  it('opens a card from the keyboard', async () => {
+    const onSelectLot = vi.fn();
+    renderList({ onSelectLot });
+    cardFor('Lot B').focus();
+    await userEvent.keyboard('{Enter}');
+    expect(onSelectLot).toHaveBeenCalledWith(UPDATING_LOT);
+  });
+
+  it('hides the list from assistive tech while covered by the forecast', () => {
+    renderList({ covered: true });
+    expect(screen.queryByRole('heading', { name: 'Lot Occupancy Status' })).not.toBeInTheDocument();
   });
 
   it('calls onRefresh when Refresh is clicked', async () => {

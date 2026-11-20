@@ -49,11 +49,12 @@ describe('ForecastPanel', () => {
     expect(screen.getByText('Green Permit • Student')).toBeInTheDocument();
   });
 
-  it('shows an hourly strip that starts with the current occupancy', () => {
+  it('shows an hourly strip of clock times that starts with the current occupancy', () => {
+    vi.useFakeTimers({ now: new Date(2026, 10, 19, 14, 15) });
     renderPanel();
     const labels = hourly().getAllByRole('listitem').map((li) => li.textContent);
-    expect(labels).toEqual(['Now74%', '+1 Hr96%', '+2 Hr30%']);
-    expect(hourly().getByText('Expected to peak at 96% full around +1 Hr.')).toBeInTheDocument();
+    expect(labels).toEqual(['Now74%', '3PM96%', '4PM30%']);
+    expect(hourly().getByText('Expected to peak at 96% full around 3PM.')).toBeInTheDocument();
     expect(hourly().getByLabelText('Nearly full')).toBeInTheDocument();
     expect(hourly().getByLabelText('Open')).toBeInTheDocument();
   });
