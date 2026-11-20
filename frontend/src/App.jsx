@@ -122,18 +122,14 @@ export default function App() {
   );
 
   // User Login Handler
-  const handleUserLogin = (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const username = formData.get('username')?.trim();
-    if (username) {
-      const userObj = { username };
-      saveUser(userObj);
-      setCurrentUser(userObj);
-      setShowAccountModal(false);
-      appendSystemLog(`[ACCOUNT] User login successful for ${username}.`);
-      alert(`Login successful for ${username}.`);
-    }
+  const handleUserLogin = (account) => {
+
+    const userObj = { username: account.email, email: account.email, role: account.role }; // EDIT: was { username }
+    saveUser(userObj);                     
+    setCurrentUser(userObj);              
+    setShowAccountModal(false);            
+    appendSystemLog(`[ACCOUNT] User login successful for ${account.email}.`); // EDIT: username -> account.email
+    alert(`Login successful for ${account.email}.`);                          // EDIT: username -> account.email
   };
 
   const handleUserLogout = () => {
