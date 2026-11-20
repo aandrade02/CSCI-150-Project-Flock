@@ -28,6 +28,7 @@ export default function App() {
   // View States: split list + map on desktop, list only on mobile (portrait screens)
   const isMobile = useIsMobile();
   const [selectedLotId, setSelectedLotId] = useState(null);
+  const [showHeatZones, setShowHeatZones] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
 
@@ -174,6 +175,19 @@ export default function App() {
         </div>
       )}
 
+      {/* Heat zones only color the map, which is hidden on mobile */}
+      {!isMobile && (
+        <div className="heat-zone-controls">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setShowHeatZones((prev) => !prev)}
+          >
+            {showHeatZones ? 'Hide Lot Heat Zones' : 'Show Lot Heat Zones'}
+          </button>
+        </div>
+      )}
+
       {/* Main Content Area: Split-Screen on Desktop, List on Mobile.
           The forecast panel slides over the list column. */}
       <main className={`dashboard-grid ${isMobile ? 'mode-list' : 'mode-split'}`}>
@@ -196,7 +210,12 @@ export default function App() {
         </div>
 
         {!isMobile && (
-          <CampusMap lots={filteredLots} onSelectLot={selectLot} selectedLotId={selectedLotId} />
+          <CampusMap
+            lots={filteredLots}
+            onSelectLot={selectLot}
+            selectedLotId={selectedLotId}
+            showHeatZones={showHeatZones}
+          />
         )}
       </main>
 

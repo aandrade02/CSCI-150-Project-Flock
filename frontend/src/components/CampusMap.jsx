@@ -2,10 +2,11 @@ import CampusMapBase from './CampusMapBase';
 import { getLotLabelLayout } from '../services/lotLabelLayout';
 import { isLotUpdating, getMapPolygonColor } from '../services/lotStatus';
 import { MAP_WIDTH, MAP_HEIGHT } from '../services/mapView';
+import { getLotHeatZone } from '../services/lotHeatZone';
 
 // Interactive lot polygon with its code and status labels
-function MapLot({ lot, onSelectLot, selected }) {
-  const polyColor = getMapPolygonColor(lot);
+function MapLot({ lot, onSelectLot, selected, showHeatZones }) {
+  const polyColor = showHeatZones ? getLotHeatZone(lot).color : getMapPolygonColor(lot);
   const isUpdating = isLotUpdating(lot);
   const { points, label } = lot.coordinates;
   const layout = getLotLabelLayout(lot.coordinates);
@@ -54,7 +55,7 @@ function MapLot({ lot, onSelectLot, selected }) {
 }
 
 // Campus SVG with the interactive lot polygons; selectedLotId outlines one lot and dims the rest.
-export function CampusMapSvg({ lots, onSelectLot, selectedLotId = null, viewBox = `0 0 ${MAP_WIDTH} ${MAP_HEIGHT}` }) {
+export function CampusMapSvg({ lots, onSelectLot, selectedLotId = null, showHeatZones = false, viewBox = `0 0 ${MAP_WIDTH} ${MAP_HEIGHT}` }) {
   return (
     <svg
       viewBox={viewBox}
@@ -69,7 +70,13 @@ export function CampusMapSvg({ lots, onSelectLot, selectedLotId = null, viewBox 
       {lots.map((lot) => {
         if (!lot.coordinates) return null;
         return (
-          <MapLot key={lot.id} lot={lot} onSelectLot={onSelectLot} selected={lot.id === selectedLotId} />
+          <MapLot
+            key={lot.id}
+            lot={lot}
+            onSelectLot={onSelectLot}
+            selected={lot.id === selectedLotId}
+            showHeatZones={showHeatZones}
+          />
         );
       })}
     </svg>
@@ -77,7 +84,7 @@ export function CampusMapSvg({ lots, onSelectLot, selectedLotId = null, viewBox 
 }
 
 // Right Column: Customized Fresno State Static Parking Map
-export default function CampusMap({ lots, onSelectLot, selectedLotId }) {
+export default function CampusMap({ lots, onSelectLot, selectedLotId, showHeatZones }) {
   return (
     <section className="panel map-panel">
       <div className="panel-header">
@@ -105,7 +112,12 @@ export default function CampusMap({ lots, onSelectLot, selectedLotId }) {
 
       {/* Customized Fresno State Campus SVG Map */}
       <div className="static-map-canvas">
-        <CampusMapSvg lots={lots} onSelectLot={onSelectLot} selectedLotId={selectedLotId} />
+        <CampusMapSvg
+          lots={lots}
+          onSelectLot={onSelectLot}
+          selectedLotId={selectedLotId}
+          showHeatZones={showHeatZones}
+        />
       </div>
     </section>
   );
