@@ -671,6 +671,12 @@ body {
   gap: 0.85rem;
 }
 
+/* Cards keep their natural height and the body scrolls; otherwise the
+   overflow-hidden mini map gets squeezed flat on short screens */
+.forecast-panel-body > * {
+  flex-shrink: 0;
+}
+
 .forecast-panel .lot-card {
   background: rgba(15, 23, 42, 0.55);
   border-color: rgba(255, 255, 255, 0.1);
