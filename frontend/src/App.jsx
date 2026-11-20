@@ -10,6 +10,7 @@ import ForecastModal from './components/ForecastModal';
 import AccountModal from './components/AccountModal';
 import AdminModal from './components/AdminModal';
 import DemoToolbar from './components/DemoToolbar';
+import LotHeatZone from './components/LotHeatZone';
 
 export default function App() {
   // Core Data States
@@ -27,6 +28,8 @@ export default function App() {
   // View States
   const [mobileTab, setMobileTab] = useState('split'); // 'split' | 'list' | 'map'
   const [selectedForecastLot, setSelectedForecastLot] = useState(null);
+  const [selectedLotForHeatZone, setSelectedLotForHeatZone] = useState(false);
+  const [showHeatZones, setShowHeatZones] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
 
@@ -167,6 +170,16 @@ export default function App() {
         </div>
       )}
 
+      <div className="heat-zone-controls">
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => setSelectedLotForHeatZone((prev) => !prev)}
+        >
+          {selectedLotForHeatZone ? 'Hide Lot Heat Zones' : 'Show Lot Heat Zones'}
+        </button>
+      </div>
+
       {/* Main Content Area: Split-Screen on Desktop or Toggled View */}
       <main className={`dashboard-grid mode-${mobileTab}`}>
         {(mobileTab === 'split' || mobileTab === 'list') && (
@@ -180,8 +193,12 @@ export default function App() {
         )}
 
         {(mobileTab === 'split' || mobileTab === 'map') && (
-          <CampusMap lots={filteredLots} onSelectLot={setSelectedForecastLot} />
-        )}
+            <CampusMap
+             lots={filteredLots}
+              onSelectLot={setSelectedForecastLot}
+              showHeatZones={selectedLotForHeatZone}
+            />
+        )} 
       </main>
 
       <ForecastModal lot={selectedForecastLot} onClose={() => setSelectedForecastLot(null)} />
