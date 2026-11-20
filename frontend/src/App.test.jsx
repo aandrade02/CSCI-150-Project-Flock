@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within, fireEvent, act } from '@testing-library/react';
 import App from './App';
 import { INITIAL_LOTS } from './mocks/mockData';
@@ -194,7 +194,7 @@ describe('App: forecast', () => {
     fireEvent.click(cardFor(FIRST_LOT.name));
     click('Account');
 
-    fireEvent.keyDown(screen.getByLabelText('Username or Email'), { key: 'Escape' });
+    fireEvent.keyDown(screen.getByLabelText('Email'), { key: 'Escape' });
     expect(panel()).toBeInTheDocument();
   });
 
@@ -219,21 +219,80 @@ describe('App: forecast', () => {
 });
 
 describe('App: user account', () => {
+  // Pretend to be the Django backend: reply to fetch() with this status + JSON body
+  const mockBackend = (status, body) =>
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
+    );
+
+  afterEach(() => vi.restoreAllMocks());
+
   it('logs in, remembers the user, and logs out', async () => {
     await renderApp();
+    const fetchSpy = mockBackend(200, { email: 'student@mail.fresnostate.edu', role: 'student' });
 
     click('Account');
-    fillLogin('Username or Email', 'bulldog_student', 'Password', 'secret');
+    fillLogin('Email', 'student@mail.fresnostate.edu', 'Password', 'password123');
+    await advance(0); // let the fake backend reply
 
-    expect(alert).toHaveBeenCalledWith('Login successful for bulldog_student.');
-    expect(JSON.parse(localStorage.getItem('flocklite_user'))).toEqual({ username: 'bulldog_student' });
+    expect(fetchSpy).toHaveBeenCalledWith('/api/accounts/login/', expect.objectContaining({ method: 'POST' }));
+    expect(alert).toHaveBeenCalledWith('Login successful for student@mail.fresnostate.edu.');
+    expect(JSON.parse(localStorage.getItem('flocklite_user'))).toEqual({
+      username: 'student@mail.fresnostate.edu',
+      email: 'student@mail.fresnostate.edu',
+      role: 'student'
+    });
     expect(screen.queryByRole('heading', { name: 'User Login' })).not.toBeInTheDocument();
 
-    click('bulldog_student');
+    click('student@mail.fresnostate.edu');
     click('Log Out');
 
     expect(localStorage.getItem('flocklite_user')).toBeNull();
     expect(screen.getByRole('button', { name: 'Account' })).toBeInTheDocument();
+  });
+
+  it('shows the backend error and stays logged out on a wrong password', async () => {
+    await renderApp();
+    mockBackend(401, { error: 'Invalid email or password.' });
+
+    click('Account');
+    fillLogin('Email', 'student@mail.fresnostate.edu', 'Password', 'wrongpass');
+    await advance(0);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Invalid email or password.');
+    expect(localStorage.getItem('flocklite_user')).toBeNull();
+  });
+
+  it('creates an account', async () => {
+    await renderApp();
+    const fetchSpy = mockBackend(201, { email: 'new@mail.fresnostate.edu', role: 'staff' });
+
+    click('Account');
+    click('Create an account');
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'new@mail.fresnostate.edu' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByLabelText('Role'), { target: { value: 'staff' } });
+    click('Sign Up');
+    await advance(0);
+
+    expect(fetchSpy).toHaveBeenCalledWith('/api/accounts/signup/', expect.objectContaining({
+      body: JSON.stringify({ email: 'new@mail.fresnostate.edu', password: 'password123', role: 'staff' })
+    }));
+    expect(screen.getByRole('button', { name: 'new@mail.fresnostate.edu' })).toBeInTheDocument();
+  });
+
+  it('rejects a short password before calling the backend', async () => {
+    await renderApp();
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+    click('Account');
+    click('Create an account');
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'new@mail.fresnostate.edu' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'short' } });
+    click('Sign Up');
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Password must be at least 8 characters.');
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('starts signed in when a user was saved earlier', async () => {
@@ -286,7 +345,7 @@ describe('App: demo controls', () => {
   it('ignores Shift+D while typing in a field', async () => {
     await renderApp();
     click('Account');
-    pressShiftD(screen.getByLabelText('Username or Email'));
+    pressShiftD(screen.getByLabelText('Email'));
     expect(toolbar()).not.toBeInTheDocument();
   });
 

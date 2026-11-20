@@ -17,12 +17,17 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, re_path
 from parking.views import parking_lots
+from accounts.views import signup_view, login_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     re_path(r'^api/lots/?$', parking_lots, name='parking_lots_api'),
     path('api/lots/', parking_lots),
     path('api/lots', parking_lots),
+
+    # New endpoints for account management
+    path('api/accounts/signup/', signup_view, name='signup'),
+    path('api/accounts/login/', login_view, name='login'),
 
     # New endpoint for the React frontend
     path('', parking_lots, name='parking_lots'),
