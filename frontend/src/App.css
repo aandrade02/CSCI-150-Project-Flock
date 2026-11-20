@@ -527,3 +527,19 @@ body {
   font-family: monospace;
   font-size: 0.72rem;
 }
+.heat-zone-controls {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 20px;
+}
+
+.heat-zone-view {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: flex-start;
+  gap: 20px;
+  padding: 20px;
+  overflow-y: auto;
+  min-width: 0;
+}

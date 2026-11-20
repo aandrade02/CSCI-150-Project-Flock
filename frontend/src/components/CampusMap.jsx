@@ -1,10 +1,15 @@
 import CampusMapBase from './CampusMapBase';
 import { getLotLabelLayout } from '../services/lotLabelLayout';
 import { isLotUpdating, getMapPolygonColor } from '../services/lotStatus';
+import {getLotHeatZone } from '../services/lotHeatZone';
 
 // Interactive lot polygon with its code and status labels
-function MapLot({ lot, onSelectLot }) {
-  const polyColor = getMapPolygonColor(lot);
+function MapLot({ lot, onSelectLot, showHeatZones }) {
+  const heatZone = getLotHeatZone(lot);
+
+  const polyColor = showHeatZones
+    ? heatZone.color
+    : getMapPolygonColor(lot);
   const isUpdating = isLotUpdating(lot);
   const { points, label } = lot.coordinates;
   const layout = getLotLabelLayout(lot.coordinates);
@@ -53,7 +58,7 @@ function MapLot({ lot, onSelectLot }) {
 }
 
 // Right Column: Customized Fresno State Static Parking Map
-export default function CampusMap({ lots, onSelectLot }) {
+export default function CampusMap({ lots, onSelectLot, showHeatZones }) {
   return (
     <section className="panel map-panel">
       <div className="panel-header">
@@ -89,7 +94,7 @@ export default function CampusMap({ lots, onSelectLot }) {
           {/* Interactive Fresno State Demo Parking Lot Polygons */}
           {lots.map((lot) => {
             if (!lot.coordinates) return null;
-            return <MapLot key={lot.id} lot={lot} onSelectLot={onSelectLot} />;
+            return <MapLot key={lot.id} lot={lot} onSelectLot={onSelectLot} showHeatZones={showHeatZones} />;
           })}
         </svg>
       </div>
