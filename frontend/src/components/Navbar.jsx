@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Menu, X, Shield, User } from 'lucide-react';
 
 const PERMIT_OPTIONS = [
@@ -48,6 +48,20 @@ function NavOptions({ permitFilter, onPermitChange, currentUser, onOpenAccount, 
 // Top Navigation Bar: inline options on desktop, hamburger slide-out menu on mobile
 export default function Navbar({ isMobile, ...options }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  // Rotating to landscape drops the menu, so it doesn't reappear when rotating back
+  if (!isMobile && menuOpen) setMenuOpen(false);
+
+  // Escape closes the menu. Capture phase, so it runs (and claims the key) before the forecast panel's listener.
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const handleKeyDown = (e) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      setMenuOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [menuOpen]);
 
   if (!isMobile) {
     return (

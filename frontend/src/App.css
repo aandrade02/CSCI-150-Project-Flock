@@ -581,6 +581,7 @@ body {
   transition: transform 0.25s ease, visibility 0s linear 0.25s;
   z-index: 850;
   overflow-y: auto;
+  overscroll-behavior: contain; /* don't scroll the page behind */
 }
 
 .mobile-menu.open {
@@ -665,6 +666,7 @@ body {
 .forecast-panel-body {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain; /* don't scroll the page behind */
   padding: 0.9rem;
   display: flex;
   flex-direction: column;

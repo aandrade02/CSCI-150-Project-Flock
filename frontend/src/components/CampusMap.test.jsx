@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import CampusMap from './CampusMap';
+import CampusMap, { CampusMapSvg } from './CampusMap';
 
 const COORDINATES = {
   points: [[100, 100], [200, 100], [200, 200], [100, 200]],
@@ -46,5 +46,43 @@ describe('CampusMap', () => {
     const [, staff] = renderMap([STUDENT_LOT, STAFF_LOT], onSelectLot);
     await userEvent.click(staff);
     expect(onSelectLot).toHaveBeenCalledWith(STAFF_LOT);
+  });
+});
+
+describe('CampusMap: selection', () => {
+  it('outlines the selected lot and dims the rest', () => {
+    const { container } = render(
+      <CampusMap lots={[STUDENT_LOT, STAFF_LOT]} onSelectLot={() => {}} selectedLotId="lot-b" />
+    );
+    const [student, staff] = container.querySelectorAll('.map-lot-group');
+    expect(staff).toHaveClass('selected');
+    expect(staff.querySelector('polygon')).toHaveAttribute('stroke-width', '4');
+    expect(student).not.toHaveClass('selected');
+    expect(student.querySelector('polygon')).toHaveAttribute('stroke-width', '2.4');
+    expect(container.querySelector('svg')).toHaveClass('has-selection');
+  });
+
+  it('shows the whole map with nothing selected by default', () => {
+    const { container } = render(<CampusMap lots={[STUDENT_LOT]} onSelectLot={() => {}} />);
+    const svg = container.querySelector('svg');
+    expect(svg).not.toHaveClass('has-selection');
+    expect(svg).toHaveAttribute('viewBox', '0 0 1000 612');
+    expect(container.querySelector('.map-lot-group.selected')).toBeNull();
+  });
+});
+
+describe('CampusMapSvg', () => {
+  it('uses a custom view box to zoom in', () => {
+    const { container } = render(
+      <CampusMapSvg lots={[STUDENT_LOT]} onSelectLot={() => {}} viewBox="50 50 300 150" />
+    );
+    expect(container.querySelector('svg')).toHaveAttribute('viewBox', '50 50 300 150');
+  });
+
+  it('passes the lot to onSelectLot when its shape is clicked', async () => {
+    const onSelectLot = vi.fn();
+    const { container } = render(<CampusMapSvg lots={[STUDENT_LOT]} onSelectLot={onSelectLot} />);
+    await userEvent.click(container.querySelector('.map-lot-group'));
+    expect(onSelectLot).toHaveBeenCalledWith(STUDENT_LOT);
   });
 });

@@ -118,14 +118,16 @@ export default function App() {
     appendSystemLog(`[DEMO] Toggled ${lotId} status.`);
   };
 
-  // Look the selected lot up by id so its forecast panel follows refreshed data
-  const selectedLot = lots.find((lot) => lot.id === selectedLotId) ?? null;
-  const selectLot = useCallback((lot) => setSelectedLotId(lot.id), []);
-  const closeForecast = useCallback(() => setSelectedLotId(null), []);
-
   const filteredLots = lots.filter((lot) =>
     permitFilter === 'All' ? true : (lot.permitType || '').toLowerCase() === permitFilter.toLowerCase()
   );
+
+  // Look the selected lot up by id so its forecast panel follows refreshed data.
+  // A lot hidden by the permit filter closes its forecast (and stays closed if the filter is undone).
+  const selectedLot = filteredLots.find((lot) => lot.id === selectedLotId) ?? null;
+  if (selectedLotId && !selectedLot) setSelectedLotId(null);
+  const selectLot = useCallback((lot) => setSelectedLotId(lot.id), []);
+  const closeForecast = useCallback(() => setSelectedLotId(null), []);
 
   // User Login Handler
   const handleUserLogin = (e) => {

@@ -151,6 +151,53 @@ describe('App: forecast', () => {
     expect(panel()).toBeInTheDocument();
   });
 
+  it('closes with Escape and gives the list back', async () => {
+    await renderApp();
+    fireEvent.click(cardFor(FIRST_LOT.name));
+    expect(panel()).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(panel()).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Lot Occupancy Status' })).toBeInTheDocument();
+  });
+
+  it('outlines the open lot on the main map until it closes', async () => {
+    const { container } = await renderApp();
+    const selected = () => container.querySelectorAll('.map-panel .map-lot-group.selected');
+    expect(selected()).toHaveLength(0);
+
+    fireEvent.click(cardFor(FIRST_LOT.name));
+    expect(selected()).toHaveLength(1);
+    expect(selected()[0]).toHaveTextContent(FIRST_LOT.code);
+
+    click('Lots');
+    expect(selected()).toHaveLength(0);
+  });
+
+  it('closes the forecast when the permit filter hides its lot, and stays closed after', async () => {
+    const { container } = await renderApp();
+    fireEvent.click(cardFor(FIRST_LOT.name)); // a student lot
+    click('Yellow (Staff)');
+    await advance(200);
+
+    expect(panel()).not.toBeInTheDocument();
+    expect(container.querySelector('.map-lot-group.selected')).toBeNull();
+    expect(screen.getByText(new RegExp(`Showing ${STAFF_COUNT} of ${TOTAL} lot`))).toBeInTheDocument();
+
+    click('All Lots');
+    await advance(200);
+    expect(panel()).not.toBeInTheDocument();
+  });
+
+  it('ignores Escape while a modal is open over the forecast', async () => {
+    await renderApp();
+    fireEvent.click(cardFor(FIRST_LOT.name));
+    click('Account');
+
+    fireEvent.keyDown(screen.getByLabelText('Username or Email'), { key: 'Escape' });
+    expect(panel()).toBeInTheDocument();
+  });
+
   it('includes a mini map of the lot on mobile', async () => {
     useMobileScreen();
     const { container } = await renderApp();

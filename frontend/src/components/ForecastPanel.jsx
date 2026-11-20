@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, Clock, CalendarDays, CircleParking, Car, Ban, AlertTriangle } from 'lucide-react';
 import { LotCard } from './LotList';
 import { CampusMapSvg } from './CampusMap';
@@ -42,8 +42,8 @@ function HourlyCard({ lot, forecast }) {
         <Clock size={13} /> Hourly Forecast
       </h4>
       <ol className="wx-hourly">
-        {columns.map((item) => (
-          <li key={item.label} className={item.label === 'Now' ? 'now' : ''}>
+        {columns.map((item, i) => (
+          <li key={`${i}-${item.label}`} className={item.label === 'Now' ? 'now' : ''}>
             <span className="wx-hour-label">{item.label}</span>
             <OccupancyIcon pctFull={item.pctFull} />
             <strong>{item.pctFull}%</strong>
@@ -63,8 +63,8 @@ function DailyCard({ daily }) {
         <CalendarDays size={13} /> Daily Forecast
       </h4>
       <ul className="wx-daily">
-        {daily.map((item) => (
-          <li key={item.label}>
+        {daily.map((item, i) => (
+          <li key={`${i}-${item.label}`}>
             <span className="wx-day-label">{item.label}</span>
             <OccupancyIcon pctFull={item.pctFull} size={20} />
             <div className="wx-range-track">
@@ -90,11 +90,26 @@ export default function ForecastPanel({ lot, lots, isMobile, onSelectLot, onClos
   const [shownLot, setShownLot] = useState(lot);
   const open = Boolean(lot);
   if (lot && lot !== shownLot) setShownLot(lot);
+  const shownLotId = shownLot?.id;
+
+  // Focus the back button on open; on close, return focus to that lot's card in the list.
+  const backBtnRef = useRef(null);
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (open) {
+      backBtnRef.current?.focus();
+    } else if (wasOpen.current) {
+      document.querySelector(`.lot-card[data-lot-id="${shownLotId}"]`)?.focus();
+    }
+    wasOpen.current = open;
+  }, [open, shownLotId]);
 
   useEffect(() => {
     if (!open) return undefined;
+    // Leave Escape to anything layered on top: a modal, or the mobile menu (which handles it first).
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape' || e.defaultPrevented || document.querySelector('.modal-backdrop')) return;
+      onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -110,7 +125,7 @@ export default function ForecastPanel({ lot, lots, isMobile, onSelectLot, onClos
       inert={!open}
     >
       <div className="forecast-panel-header">
-        <button className="back-btn" onClick={onClose}>
+        <button ref={backBtnRef} className="back-btn" onClick={onClose}>
           <ChevronLeft size={20} /> Lots
         </button>
         <h2>{shownLot.name} Forecast</h2>

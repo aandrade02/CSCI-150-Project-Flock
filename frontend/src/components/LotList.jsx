@@ -10,7 +10,7 @@ export function LotCard({ lot, onSelectLot }) {
     ? {
         role: 'button',
         tabIndex: 0,
-        'aria-label': `${lot.name} forecast`,
+        'data-lot-id': lot.id,
         onClick: () => onSelectLot(lot),
         onKeyDown: (e) => {
           if (e.key === 'Enter' || e.key === ' ') {
